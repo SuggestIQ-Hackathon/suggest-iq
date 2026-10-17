@@ -36,4 +36,4 @@ semantic state colours (success/warning/danger/info), and Okabe-Ito-derived doma
 A test (`test_theme_tokens.py`) fails if any other file hard-codes a colour or if contrast drops below AA (text) / 3:1 (graphics).
 
 ## Palette update
-The team palette (`#010736`, `#0D1C42`, `#22396F`, `#FCF1D0`) now drives the whole UI: cream page, lighter-cream cards, navy text, navy header band and sidebar, mid-navy actions. State and domain hues are tuned to read on cream (see `tokens.py`).
+The team palette (`#010736`, `#0D1C42`, `#22396F`, `#FCF1D0`) now drives the whole UI: pale-cream page (lightest tint of `#FCF1D0`), white cards, navy text, navy header band and sidebar, mid-navy actions. State and domain hues are tuned to read on cream (see `tokens.py`).

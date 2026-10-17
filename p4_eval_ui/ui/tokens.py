@@ -18,11 +18,11 @@ NAVY_900 = "#0D1C42"
 NAVY_700 = "#22396F"
 CREAM = "#FCF1D0"
 
-# --- neutrals (cream page, lighter-cream cards, navy text) --------------------------------------------------------
-BG = CREAM              # app background
-BG_ALT = "#F2E6C2"      # secondary background (inputs, code)
-SURFACE = "#FEF9EC"     # cards (lighter tint of the cream)
-BORDER = "#DED5BD"
+# --- neutrals (lightest tint of the cream as the page, white cards, navy text) ------------------------------------
+BG = "#FEF9EC"          # app background: the lightest tint of CREAM
+BG_ALT = "#F9F1DA"      # secondary background (inputs, code): a light tint of CREAM
+SURFACE = "#FFFFFF"     # cards
+BORDER = "#E8DFC4"
 INK = NAVY_950          # primary text
 MUTED = "#46517A"       # secondary text (>= 4.5:1 on SURFACE and BG)
 SUBTLE = "#9AA3BF"      # idle / disabled graphics only, never text
