@@ -19,5 +19,7 @@ make test-pN          # your slice (N = 1..4)
 STRICT=1 make test-pN && make test-integration MEMBER=pN   # handoff gate
 ```
 
+Agents talk to each other through `questions/` (one file per question, addressed to a member's agent; see `questions/README.md`). Check yours with `make questions MEMBER=pN`.
+
 Using an AI coding agent? Point it at `AGENTS.md` (Codex/Antigravity/Claude read it automatically; Cursor uses `.cursor/rules/common.mdc`).
 `resources/` is read-only input data. `Clinical.zip` (52 MB) and `FoodSecurity.zip` (17 MB) are git-ignored because they are heavy: get them from the team drive and place them in `resources/`. All other resource files are tracked.

@@ -37,7 +37,7 @@ Read first: `../COMMON.md`. Your folder: `p1_orchestrator/` (+ you own `core/`, 
 - [ ] **P1-07 Audit trace** (`audit_trace` dict, always non-empty): `routing` (the `RoutingDecision` dump), `agents` (per domain: status, uncertainty, latency_ms, real_or_mock, error), `mode` (`llm_mode`), `started_at`, `total_ms`, `fallbacks_used` (list). P4's dashboard reads exactly these keys.
 - [ ] **P1-08 CLI** `main.py`: prints a readable report (summary, per-domain status + citations, recommendations, next steps, KPIs); `--json` prints `ConsultingReport` JSON; `--context-file` loads the `context` dict. Uses `core.registry.get_agents()` (honours `REAL_DOMAINS`). *Accept:* `python -m p1_orchestrator.main "Our Cisco router fails intermittently"` works on mocks.
 - [ ] **P1-09 Own unit tests** in `p1_orchestrator/tests/` (router accuracy, decomposition, dispatcher isolation, synthesizer rules incl. "INFORMATION_REQUEST first in next_steps").
-- [ ] **P1-10 Integration lead.** At the integration freeze: merge branches, run `make test-all`, route failures to the owner via `QUESTIONS.md`. Answer `QUESTIONS.md` items daily; apply approved `SCHEMA-CHANGE`s (additive only) and announce them.
+- [ ] **P1-10 Integration lead.** At the integration freeze: merge branches, run `make test-all`, route failures to the owner via `questions/to-pN/`. Answer `questions/to-p1/` daily (`make questions MEMBER=p1`); apply approved `SCHEMA-CHANGE`s (additive only) and announce them.
 - [ ] **P1-11 Keep `requirements.txt` and `core/` healthy.** Add shared deps only if two members need them.
 
 ## DO NOT build (belongs to others)

@@ -38,11 +38,12 @@ Out of scope (see `FUTURE.md`): the retail market-basket recommender. **Do not b
 
 ## 2. Repository map and ownership
 
-**Rule: you may create or edit files ONLY under your own folder.** Everything else is read-only for you. If you need a change elsewhere, add a request to `QUESTIONS.md` and use the mock/interface in the meantime.
+**Rule: you may create or edit files ONLY under your own folder.** Everything else is read-only for you. If you need a change elsewhere, send a question to that member's agent (`questions/`, section 6) and use the mock/interface in the meantime.
 
 | Path | Owner | Notes |
 |---|---|---|
-| `COMMON.md`, `AGENTS.md`, `CLAUDE.md`, `.cursor/`, `README.md`, `FUTURE.md`, `QUESTIONS.md` (append-only) | P1 | everyone may *append* to `QUESTIONS.md` |
+| `COMMON.md`, `AGENTS.md`, `CLAUDE.md`, `.cursor/`, `README.md`, `FUTURE.md` | P1 | |
+| `questions/to-pN/` | any agent may CREATE a file in any inbox; only the owner `pN` edits files in `to-pN/` (to answer) | agent mailbox, section 6 |
 | `core/` (schemas, interfaces, registry, mocks, llm, rag_base) | P1 | **LOCKED**. See section 3 |
 | `core/fixtures/benchmark_queries.json` | P4 after kickoff | schema fixed (section 5) |
 | `core/fixtures/contract_queries.json` | P1 | |
@@ -106,7 +107,7 @@ Constructors take **no arguments** and must be cheap-ish (load prebuilt index la
 
 **Shared plumbing — do not reimplement:** `core/llm.py` (`complete`, `complete_json`, `is_mock`) and `core/rag_base.py` (`chunk_text`, `VectorIndex.add/query/save/load`, `hits_to_citations`, `Hit`). Embeddings default to an offline hash embedder (`EMBEDDING_MODE=hash`); switch to `local` or `litellm` for quality runs. Indices must be rebuilt if the mode changes.
 
-**Changing a locked contract:** only P1, and only by appending a `SCHEMA-CHANGE` entry to `QUESTIONS.md` first; everyone adapts. Additive, optional fields only.
+**Changing a locked contract:** only P1, and only after a `type: SCHEMA-CHANGE` question in `questions/to-p1/`; everyone adapts. Additive, optional fields only.
 
 ---
 
@@ -132,7 +133,7 @@ Constructors take **no arguments** and must be cheap-ish (load prebuilt index la
 
 How it works: `tests/contract/checks.py` defines the contract (schema validity, citations present, `INFORMATION_REQUEST` rules, no parts without diagnostics, `retrieve()` returns `Hit`s, runs offline in time). `make test-pN` runs it against your **real** class; until it exists the test is skipped (visible as `s`). Your slice is *done* when `STRICT=1 make test-pN` and `make test-integration MEMBER=pN` are both green.
 
-You may add more tests under your own `pN_*/tests/`. Do not edit anything in `tests/`; if a check is wrong or too strict, write it in `QUESTIONS.md`.
+You may add more tests under your own `pN_*/tests/`. Do not edit anything in `tests/`; if a check is wrong or too strict, send a question to `questions/to-p1/`.
 
 **Benchmark fixture** (`core/fixtures/benchmark_queries.json`, 25 queries: 5 each tech, clinical, sec, csr + 5 cross-domain). Each item: `id`, `query`, `expected_domains` (list of domain values), `type` (`single`|`cross`), `expected_sources` (substrings of expected `source_doc`s), `expected_keywords`. P4 may extend it (keep existing ids).
 
@@ -142,7 +143,8 @@ You may add more tests under your own `pN_*/tests/`. Do not edit anything in `te
 
 1. Re-read this file (sections 2 and 3).
 2. Read the other members' `TODO.md`. If the work item appears in **someone else's** TODO, **do not build it**. Use the mock (`core.mocks.MockDomainAgent`) or the interface in section 3.
-3. If a needed thing is in nobody's TODO, do **not** invent it. Append to `QUESTIONS.md`: `[date] [Pn] [QUESTION|SCHEMA-CHANGE|BLOCKED] <what you need, which TODO item, proposed answer>`, then continue with the next TODO item.
+3. If a needed thing is in nobody's TODO, do **not** invent it. Create a question file addressed to the member who most plausibly owns it (`questions/to-pN/...`, template in `questions/README.md`) with a proposed answer and a workaround, push it, then continue with the next TODO item.
+   - **Every session start:** `git pull`, then `make questions MEMBER=<you>` and answer every open question addressed to you (inside your own TODO scope) before new work.
 4. Never edit files outside your folder to "fix" something. Never rename or move another member's files.
 5. Never add features beyond your TODO ("nice to haves" included) until every box in your TODO is checked and the handoff gate is green.
 
@@ -152,6 +154,11 @@ You may add more tests under your own `pN_*/tests/`. Do not edit anything in `te
 - Confidence/uncertainty: each agent sets its own `confidence_score`/`uncertainty_level` using the rule in section 3. P4's explainability code reads finished responses only; agents never import P4.
 - Routing logic is P1 only. P2/P3 agents do not decide whether a question belongs to them; the Manager does.
 - Metrics, benchmark runner and UI are P4 only. Agents expose `retrieve()`; P4 computes hit-rate.
+
+---
+
+### Agent-to-agent questions (`questions/`)
+One file per question, addressed to a member's agent: `questions/to-p1|p2|p3|p4|all/<YYYYMMDD-HHMM>_from-pM_<slug>.md`. Full protocol, template and statuses: `questions/README.md`. Commands: `make questions MEMBER=pN` (open questions for you), `make questions MEMBER=pN FROM=1` (questions you sent). Questions never block work: always include a proposed answer and keep going.
 
 ---
 
@@ -175,7 +182,7 @@ Unzip into `data/raw/<domain>/` (gitignored) with your ingest script. Do not mod
 - No IBM files -> Technology agent covers Cisco and Google; IBM questions return `HIGH` uncertainty.
 - Agilent material is web pages, not manuals -> P2 builds an instrument catalog from them.
 - No company ESG reports -> CSR agent is grounded in SOFI; ESG-metric questions are `HIGH` uncertainty.
-- SEC filing year may not be 2025 -> P3 verifies and reports in `QUESTIONS.md`.
+- SEC filing year may not be 2025 -> P3 verifies and reports in `questions/to-all/`.
 
 ---
 

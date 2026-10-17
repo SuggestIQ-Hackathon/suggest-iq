@@ -1,4 +1,4 @@
-"""LOCKED shared contracts. Owner: P1. Do not edit without a SCHEMA-CHANGE entry in QUESTIONS.md.
+"""LOCKED shared contracts. Owner: P1. Do not edit without a SCHEMA-CHANGE question in questions/to-p1/.
 
 Every module in the repo talks to every other module only through these types.
 """
