@@ -84,9 +84,13 @@ def render_sidebar() -> None:
 
 
 def _is_dark():
+    """True/False when the Streamlit theme is known, None when it follows the browser (then the iframe uses prefers-color-scheme)."""
+    base = st.get_option("theme.base")  # set explicitly by the launcher (light) or by the user's config
+    if base in ("light", "dark"):
+        return base == "dark"
     try:
         return st.context.theme.type == "dark"
-    except Exception:  # noqa: BLE001 - older Streamlit or unknown theme: let the iframe follow the browser
+    except Exception:  # noqa: BLE001 - older Streamlit or unknown theme
         return None
 
 
