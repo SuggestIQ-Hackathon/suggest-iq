@@ -6,14 +6,10 @@ import argparse
 import sys
 from pathlib import Path
 
+from p4_eval_ui.ui import tokens as T
+
 APP = Path(__file__).resolve().parent / "dashboard.py"
-LIGHT = {
-    "theme.base": "light",
-    "theme.primaryColor": "#4f46e5",
-    "theme.backgroundColor": "#f7f8fc",
-    "theme.secondaryBackgroundColor": "#eceff7",
-    "theme.textColor": "#1b1f24",
-}
+LIGHT = T.STREAMLIT_THEME
 
 
 def main() -> None:

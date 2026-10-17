@@ -28,3 +28,9 @@ Use real content from this product: the Cisco router example ("Our Cisco enterpr
 
 ## Superdesign project
 project 57c8d16b-e866-4377-b2e5-deffbda87a50, Consult draft bcac6196-fb4f-4577-9f97-40a43553678e (model gemini-3.1-pro). Canvas: https://superdesign.dev/teams/e5bcf573-d2df-4f4d-ae48-0536ae762844/projects/57c8d16b-e866-4377-b2e5-deffbda87a50
+
+## Implementation tokens (authoritative: `p4_eval_ui/ui/tokens.py`)
+The Streamlit app implements this design system from one token file. The Superdesign palette above was exploratory; where the two differ, `tokens.py` wins:
+neutrals (bg `#F6F7FB`, surface `#FFFFFF`, border `#E3E6EF`, ink `#151A2D`, muted `#5B6478`), one brand indigo `#4F46E5` (strong `#3730A3`),
+semantic state colours (success/warning/danger/info), and Okabe-Ito-derived domain colours. Circles mean state, squares/bars mean domain.
+A test (`test_theme_tokens.py`) fails if any other file hard-codes a colour or if contrast drops below AA (text) / 3:1 (graphics).

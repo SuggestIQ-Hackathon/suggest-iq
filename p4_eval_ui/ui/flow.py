@@ -7,14 +7,16 @@ Reads: routing.domains, agents[domain].{status, uncertainty, latency_ms, real_or
 from html import escape
 from typing import Any, Dict, Optional
 
+from p4_eval_ui.ui import tokens as T
+
 DOMAINS = [  # (value, label, knowledge sources, colour)
-    ("technology", "Technology agent", "Cisco · Google", "#3b82f6"),
-    ("clinical", "Clinical agent", "Agilent · papers · trials", "#14b8a6"),
-    ("sec", "SEC agent", "Cisco · Agilent · Alphabet filings", "#f59e0b"),
-    ("corporate_responsibility", "Corp. Responsibility agent", "FAO food-security reports", "#22c55e"),
+    ("technology", "Technology agent", "Cisco · Google", T.DOMAIN_COLOR["technology"]),
+    ("clinical", "Clinical agent", "Agilent · papers · trials", T.DOMAIN_COLOR["clinical"]),
+    ("sec", "SEC agent", "Cisco · Agilent · Alphabet filings", T.DOMAIN_COLOR["sec"]),
+    ("corporate_responsibility", "Corp. Responsibility agent", "FAO food-security reports", T.DOMAIN_COLOR["corporate_responsibility"]),
 ]
-STATUS_COLOR = {"ANALYSIS_COMPLETE": "#16a34a", "HYPOTHESIS": "#d97706", "INFORMATION_REQUEST": "#ea580c", "CONFIRMED_FAULT": "#2563eb"}
-PURPLE = "#8b5cf6"
+STATUS_COLOR = T.STATUS_COLOR
+PURPLE = T.BRAND_STRONG  # system nodes (Manager, Synthesizer) use the brand colour
 SHORT_STATUS = {"ANALYSIS_COMPLETE": "Complete", "HYPOTHESIS": "Hypothesis", "INFORMATION_REQUEST": "Needs info", "CONFIRMED_FAULT": "Confirmed fault"}
 CYCLE = 8  # seconds per loop
 
@@ -39,7 +41,7 @@ def _packet(path: str, color: str, t0: float, t1: float, r: int = 6) -> str:
     """A dot that travels `path` only during [t0, t1] of each cycle (fractions of CYCLE)."""
     e = 0.002
     return (
-        f'<circle r="{r}" fill="{color}" stroke="#fff" stroke-width="1.5" opacity="0">'
+        f'<circle r="{r}" fill="{color}" stroke="{T.SURFACE}" stroke-width="1.5" opacity="0">'
         f'<animateMotion dur="{CYCLE}s" repeatCount="indefinite" path="{path}" calcMode="linear" '
         f'keyPoints="0;0;1;1" keyTimes="0;{t0};{t1};1"/>'
         f'<animate attributeName="opacity" dur="{CYCLE}s" repeatCount="indefinite" '
@@ -111,7 +113,7 @@ def build_flow_html(trace: Optional[Dict[str, Any]] = None, dark: Optional[bool]
         parts.append(_text(_AGENT_X + 16, y + 22, label.replace(" agent", ""), 13, 700))
         parts.append(_text(_AGENT_X + 16, y + 39, src, 10.5, opacity=0.75))
         if a:
-            sc = STATUS_COLOR.get(a.get("status", ""), "#dc2626" if a.get("error") else "#6b7280")
+            sc = STATUS_COLOR.get(a.get("status", ""), T.DANGER if a.get("error") else T.MUTED)
             parts.append(f'<circle cx="{_AGENT_X + 20}" cy="{y + 57}" r="4.5" fill="{sc}"/>')
             tag = f'{SHORT_STATUS.get(a.get("status", ""), a.get("status", "?"))} · {a.get("latency_ms", "?")} ms'
             parts.append(_text(_AGENT_X + 30, y + 61, tag, 10.5))
@@ -129,17 +131,17 @@ def build_flow_html(trace: Optional[Dict[str, Any]] = None, dark: Optional[bool]
     parts += [_text(890, 368, "Consulting report", 14, 700, "middle"), _text(890, 387, "evidence · actions · KPIs", 11, anchor="middle", opacity=0.75)]
 
     # ---- packets (the request travelling) ----
-    q_color = "#9ca3af" if idle else PURPLE
+    q_color = T.SUBTLE if idle else PURPLE
     parts.append(_packet(f"M150,{_MGR_OUT[1]} L198,{_MGR_OUT[1]}", q_color, 0.02, 0.10))
     for i, (val, _l, _s, color) in enumerate(DOMAINS):
         if idle:
-            parts.append(_packet(_fan_path(i), "#9ca3af", 0.22, 0.38))
-            parts.append(_packet(_merge_path(i), "#9ca3af", 0.52, 0.68))
+            parts.append(_packet(_fan_path(i), T.SUBTLE, 0.22, 0.38))
+            parts.append(_packet(_merge_path(i), T.SUBTLE, 0.52, 0.68))
         elif val in routed:
             parts.append(_packet(_fan_path(i), color, 0.22, 0.38))
             st = agents.get(val, {}).get("status", "")
             parts.append(_packet(_merge_path(i), STATUS_COLOR.get(st, color), 0.52, 0.68))
-    parts.append(_packet("M890,250 L890,338", "#9ca3af" if idle else PURPLE, 0.74, 0.86))
+    parts.append(_packet("M890,250 L890,338", T.SUBTLE if idle else PURPLE, 0.74, 0.86))
 
     if idle:
         caption = "Idle view: every agent is shown. Run a consultation to see the real path your question took."
@@ -149,10 +151,10 @@ def build_flow_html(trace: Optional[Dict[str, Any]] = None, dark: Optional[bool]
                    "dot colour on the way back = that agent's status. Dashed boxes are mock agents.")
     legend = "".join(f'<span class="k"><i style="background:{c}"></i>{escape(s.replace("_", " ").title())}</span>' for s, c in STATUS_COLOR.items())
     aria = escape(caption)
-    media = "@media (prefers-color-scheme: dark){html,body{color:#e6e8eb}}" if dark is None else ""
-    ink = "#e6e8eb" if dark else "#1b1f24"
+    media = "@media (prefers-color-scheme: dark){html,body{color:" + T.INK_ON_DARK + "}}" if dark is None else ""
+    ink = T.INK_ON_DARK if dark else T.INK
     if dark is None:  # follow the browser when the host theme is unknown
-        ink = "#1b1f24"
+        ink = T.INK
     return f"""<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
 html,body{{margin:0;background:transparent;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:{ink}}}

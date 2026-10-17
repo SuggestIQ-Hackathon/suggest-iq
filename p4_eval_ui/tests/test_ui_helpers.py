@@ -1,4 +1,5 @@
 from p4_eval_ui.ui import theme
+from p4_eval_ui.ui import tokens as T
 from p4_eval_ui.ui.dashboard import SUMMARY_PREFIX, trim_summary
 from p4_eval_ui.ui.flow import build_flow_html
 
@@ -22,9 +23,9 @@ def test_trim_summary_only_when_banner_shown():
 def test_path_ribbon_lists_routed_domains_with_status_colour():
     trace = {"routing": {"domains": ["technology", "sec"]}, "agents": {"technology": {"status": "INFORMATION_REQUEST"}, "sec": {"status": "ANALYSIS_COMPLETE"}}}
     html = theme.path_ribbon(trace)
-    assert "Technology" in html and "SEC" in html and "#ea580c" in html and "#16a34a" in html
+    assert "Technology" in html and "SEC" in html and T.WARNING in html and T.SUCCESS in html
 
 
 def test_flow_html_has_controls_and_theme_ink():
     light, dark = build_flow_html(None, dark=False), build_flow_html(None, dark=True)
-    assert 'id="pp"' in light and "pauseAnimations" in light and "#1b1f24" in light and "#e6e8eb" in dark
+    assert 'id="pp"' in light and "pauseAnimations" in light and T.INK in light and T.INK_ON_DARK in dark

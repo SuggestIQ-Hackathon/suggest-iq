@@ -20,6 +20,7 @@ from core import llm, registry  # noqa: E402
 from p4_eval_ui.evaluation import benchmark  # noqa: E402
 from p4_eval_ui.evaluation.explain import explain  # noqa: E402
 from p4_eval_ui.ui import theme  # noqa: E402
+from p4_eval_ui.ui import tokens as T  # noqa: E402
 from p4_eval_ui.ui.flow import build_flow_html  # noqa: E402
 
 esc = theme.esc
@@ -95,7 +96,11 @@ def _is_dark():
 
 
 def show_flow(trace) -> None:
-    components.html(build_flow_html(trace, dark=_is_dark()), height=FLOW_HEIGHT, scrolling=False)
+    html = build_flow_html(trace, dark=_is_dark())  # all dynamic text inside is HTML-escaped by build_flow_html
+    if hasattr(st, "iframe"):  # st.components.v1.html is deprecated in newer Streamlit
+        st.iframe(html, height=FLOW_HEIGHT)
+    else:
+        components.html(html, height=FLOW_HEIGHT, scrolling=False)
 
 
 def _run(manager, query: str, diagnostics: str) -> None:
@@ -160,10 +165,10 @@ def render_consult(manager) -> None:
     with cols[1]:
         theme.tile("Answer status", "Provisional" if info_req else "Complete",
                    f"{sum(s == 'INFORMATION_REQUEST' for s in statuses)} needs info · {sum(s != 'INFORMATION_REQUEST' for s in statuses)} ready",
-                   "#ea580c" if info_req else "#16a34a")
+                   T.WARNING if info_req else T.SUCCESS)
     with cols[2]:
         theme.tile("Overall confidence", view.overall_confidence.replace(" (provisional)", ""), "provisional" if prov else "from recommendations",
-                   theme.BUCKET_COLOR.get(view.overall_confidence.split(" ")[0], "#6b7280"))
+                   T.BUCKET_COLOR.get(view.overall_confidence.split(" ")[0], T.MUTED))
     with cols[3]:
         theme.tile("Evidence (citations)", str(n_cites), "verbatim snippets with source and page")
 
@@ -236,7 +241,7 @@ def render_evidence() -> None:
     for domain, resp in report.domain_findings.items():
         missing = (f'<div class="caveat">⚠ Missing information: {esc("; ".join(resp.missing_diagnostics_needed))}</div>'
                    if resp.missing_diagnostics_needed else "")
-        unc = theme.BUCKET_COLOR["Low"] if resp.uncertainty_level == "HIGH" else theme.BUCKET_COLOR["Medium"] if resp.uncertainty_level == "MEDIUM" else theme.BUCKET_COLOR["High"]
+        unc = T.UNCERTAINTY_COLOR.get(resp.uncertainty_level, T.MUTED)
         st.markdown(
             f'<div class="card"><div class="rec-top"><div class="rec-title">{esc(theme.DOMAIN_LABEL.get(domain, domain))}</div>'
             f'<div>{theme.status_pill(resp.status)} {theme.pill("uncertainty " + resp.uncertainty_level, unc)}</div></div>'
@@ -264,8 +269,8 @@ def _history():
 
 def _status_color(value, target):
     if value is None:
-        return "#6b7280"
-    return "#16a34a" if value >= target else "#d97706" if value >= 0.8 * target else "#dc2626"
+        return T.MUTED
+    return T.SUCCESS if value >= target else T.WARNING if value >= 0.8 * target else T.DANGER
 
 
 def render_evaluation(manager) -> None:
@@ -299,7 +304,7 @@ def render_evaluation(manager) -> None:
     with m[0]:
         theme.tile("Latency p50 (ms)", str(res["latency_ms_p50"]), "p95 " + str(res["latency_ms_p95"]))
     with m[1]:
-        theme.tile("Errors", str(res["errors"]), "pipeline crashes during the run", "#16a34a" if res["errors"] == 0 else "#dc2626")
+        theme.tile("Errors", str(res["errors"]), "pipeline crashes during the run", T.SUCCESS if res["errors"] == 0 else T.DANGER)
     with m[2]:
         cov = res["gold_coverage"]
         theme.tile("Gold judgments", f"{cov['queries_with_gold']} queries", f"{cov['skipped_placeholder_gold']} skipped (placeholder items)")
@@ -311,14 +316,14 @@ def render_evaluation(manager) -> None:
         long = df.melt(id_vars=["run"], value_vars=[k for k in keys if k in df], var_name="metric", value_name="score").dropna()
         long["metric"] = long["metric"].map(lambda k: TARGETS[k][0])
         st.altair_chart(alt.Chart(long).mark_line(point=True).encode(x=alt.X("run:O", title="run"), y=alt.Y("score:Q", scale=alt.Scale(domain=[0, 1])),
-                                                                     color="metric:N", tooltip=["run", "metric", "score"]), width="stretch")
+                                                                     color=alt.Color("metric:N", scale=alt.Scale(range=T.SERIES)), tooltip=["run", "metric", "score"]), width="stretch")
 
     st.subheader("Retrieval hit-rate by domain")
     df = pd.DataFrame({"domain": [theme.DOMAIN_LABEL.get(d, d) for d in res["retrieval_hit_rate_by_domain"]],
                        "hit_rate": [v if v is not None else 0 for v in res["retrieval_hit_rate_by_domain"].values()]})
     st.altair_chart(alt.Chart(df).mark_bar(cornerRadiusEnd=6).encode(
         x=alt.X("domain", sort=None, title=None), y=alt.Y("hit_rate", scale=alt.Scale(domain=[0, 1]), title="hit-rate"),
-        color=alt.Color("domain", legend=None, scale=alt.Scale(range=list(theme.DOMAIN_COLOR.values()))), tooltip=["domain", "hit_rate"]), width="stretch")
+        color=alt.Color("domain", legend=None, scale=alt.Scale(range=list(T.DOMAIN_COLOR.values()))), tooltip=["domain", "hit_rate"]), width="stretch")
 
     st.subheader("Routing: per-domain precision / recall")
     prf = pd.DataFrame(res["per_domain_routing"]).T[["precision", "recall", "f1", "support"]]
@@ -326,8 +331,8 @@ def render_evaluation(manager) -> None:
     st.subheader("Routing: gold domain (rows) vs predicted domain (columns), query counts")
     cm = pd.DataFrame(res["confusion_matrix"]).T
     long = cm.reset_index().melt(id_vars="index", var_name="predicted", value_name="queries").rename(columns={"index": "gold"})
-    heat = alt.Chart(long).mark_rect(cornerRadius=4).encode(x="predicted:N", y="gold:N", color=alt.Color("queries:Q", scale=alt.Scale(scheme="blues")), tooltip=["gold", "predicted", "queries"])
-    st.altair_chart(heat + heat.mark_text().encode(text="queries:Q", color=alt.value("black")), width="stretch")
+    heat = alt.Chart(long).mark_rect(cornerRadius=4).encode(x="predicted:N", y="gold:N", color=alt.Color("queries:Q", scale=alt.Scale(range=T.HEATMAP)), tooltip=["gold", "predicted", "queries"])
+    st.altair_chart(heat + heat.mark_text().encode(text="queries:Q", color=alt.value(T.INK)), width="stretch")
 
     st.subheader("Confidence calibration (top recommendation vs gold relevance)")
     cal = pd.DataFrame(res["calibration"])
