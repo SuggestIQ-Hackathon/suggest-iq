@@ -34,3 +34,6 @@ The Streamlit app implements this design system from one token file. The Superde
 neutrals (bg `#F6F7FB`, surface `#FFFFFF`, border `#E3E6EF`, ink `#151A2D`, muted `#5B6478`), one brand indigo `#4F46E5` (strong `#3730A3`),
 semantic state colours (success/warning/danger/info), and Okabe-Ito-derived domain colours. Circles mean state, squares/bars mean domain.
 A test (`test_theme_tokens.py`) fails if any other file hard-codes a colour or if contrast drops below AA (text) / 3:1 (graphics).
+
+## Palette update
+The team palette (`#010736`, `#0D1C42`, `#22396F`, `#FCF1D0`) now drives the whole UI: cream page, lighter-cream cards, navy text, navy header band and sidebar, mid-navy actions. State and domain hues are tuned to read on cream (see `tokens.py`).

@@ -332,7 +332,9 @@ def render_evaluation(manager) -> None:
     cm = pd.DataFrame(res["confusion_matrix"]).T
     long = cm.reset_index().melt(id_vars="index", var_name="predicted", value_name="queries").rename(columns={"index": "gold"})
     heat = alt.Chart(long).mark_rect(cornerRadius=4).encode(x="predicted:N", y="gold:N", color=alt.Color("queries:Q", scale=alt.Scale(range=T.HEATMAP)), tooltip=["gold", "predicted", "queries"])
-    st.altair_chart(heat + heat.mark_text().encode(text="queries:Q", color=alt.value(T.INK)), width="stretch")
+    mx = max(1, int(long["queries"].max()))
+    txt = heat.mark_text().encode(text="queries:Q", color=alt.condition(f"datum.queries > {mx / 2}", alt.value(T.ON_BRAND), alt.value(T.INK)))
+    st.altair_chart(heat + txt, width="stretch")
 
     st.subheader("Confidence calibration (top recommendation vs gold relevance)")
     cal = pd.DataFrame(res["calibration"])

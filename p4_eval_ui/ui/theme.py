@@ -52,7 +52,10 @@ mark{background:color-mix(in srgb,var(--sd-warning) 25%,var(--sd-surface));color
 [data-testid="stMetric"]{border:1px solid var(--sd-border);border-radius:var(--sd-radius-card);padding:12px 16px;background:var(--sd-surface)}
 div.stButton>button[kind="primary"]{background:var(--sd-brand);border:0;color:var(--sd-on-brand);font-weight:650;border-radius:var(--sd-radius-control);padding:.55rem 1.3rem}
 div.stButton>button[kind="primary"]:hover{background:var(--sd-brand-strong)}
-section[data-testid="stSidebar"] div.stButton>button{border-radius:var(--sd-radius-control);text-align:left;justify-content:flex-start}
+section[data-testid="stSidebar"] div.stButton>button{border-radius:var(--sd-radius-control);text-align:left;justify-content:flex-start;background:transparent;color:var(--sd-on-brand);border:1px solid color-mix(in srgb,var(--sd-on-brand) 35%,transparent)}
+section[data-testid="stSidebar"] div.stButton>button:hover{background:color-mix(in srgb,var(--sd-on-brand) 12%,transparent);border-color:var(--sd-on-brand)}
+section[data-testid="stSidebar"] .group-h,section[data-testid="stSidebar"] [data-testid="stCaptionContainer"]{color:color-mix(in srgb,var(--sd-on-brand) 75%,transparent)}
+section[data-testid="stSidebar"] hr{border-color:color-mix(in srgb,var(--sd-on-brand) 25%,transparent)}
 .stTabs [data-baseweb="tab"]{font-weight:600;padding:10px 14px}
 textarea{border-radius:var(--sd-radius-control)!important}
 """

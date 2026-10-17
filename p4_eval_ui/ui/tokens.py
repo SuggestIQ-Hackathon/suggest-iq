@@ -1,5 +1,6 @@
 """Single source of truth for every colour, radius and spacing value in the dashboard. Owner: P4.
 
+The palette is four colours chosen by the team; everything else is derived from them (tints, or state/domain hues tuned to sit on cream).
 Rules (enforced by p4_eval_ui/tests/test_theme_tokens.py):
   * No hex colour literal may appear in any other file in p4_eval_ui/ui/. Import from here, or use the CSS variables (--sd-*).
   * One brand hue (indigo) for actions, active states and the system nodes (Manager, Synthesizer).
@@ -11,33 +12,39 @@ Rules (enforced by p4_eval_ui/tests/test_theme_tokens.py):
     (e.g. the ochre domain vs the amber warning) from ever meaning the same thing.
 """
 
-# --- neutrals -----------------------------------------------------------------------------------------------
-BG = "#F6F7FB"          # app background
-BG_ALT = "#ECEFF7"      # sidebar / secondary background
-SURFACE = "#FFFFFF"     # cards
-BORDER = "#E3E6EF"
-INK = "#151A2D"         # primary text
-MUTED = "#5B6478"       # secondary text (>= 4.5:1 on SURFACE and BG)
-SUBTLE = "#9AA3B5"      # idle / disabled graphics only, never text
-INK_ON_DARK = "#E6E8EB" # text on a dark host theme (diagram iframe only)
+# --- the team palette (given) -----------------------------------------------------------------------------------
+NAVY_950 = "#010736"
+NAVY_900 = "#0D1C42"
+NAVY_700 = "#22396F"
+CREAM = "#FCF1D0"
+
+# --- neutrals (cream page, lighter-cream cards, navy text) --------------------------------------------------------
+BG = CREAM              # app background
+BG_ALT = "#F2E6C2"      # secondary background (inputs, code)
+SURFACE = "#FEF9EC"     # cards (lighter tint of the cream)
+BORDER = "#DED5BD"
+INK = NAVY_950          # primary text
+MUTED = "#46517A"       # secondary text (>= 4.5:1 on SURFACE and BG)
+SUBTLE = "#9AA3BF"      # idle / disabled graphics only, never text
+INK_ON_DARK = CREAM     # text on a dark host theme (diagram iframe only)
 
 # --- brand ---------------------------------------------------------------------------------------------------
-BRAND = "#4F46E5"
-BRAND_STRONG = "#3730A3"  # header band, system nodes
-ON_BRAND = "#FFFFFF"
+BRAND = NAVY_700          # actions, active states, step numbers
+BRAND_STRONG = NAVY_900   # header band, sidebar, system nodes
+ON_BRAND = CREAM
 
-# --- semantic (state) ----------------------------------------------------------------------------------------
-SUCCESS = "#15803D"
-WARNING = "#B45309"
-DANGER = "#B91C1C"
-INFO = "#1D4ED8"
+# --- semantic (state), tuned for cream ----------------------------------------------------------------------
+SUCCESS = "#1B6E43"
+WARNING = "#9A5B0B"
+DANGER = "#A8231C"
+INFO = "#2F55A4"
 
-# --- domains (which agent) -----------------------------------------------------------------------------------
+# --- domains (which agent), tuned for cream -----------------------------------------------------------------
 DOMAIN_COLOR = {
-    "technology": "#0072B2",
-    "clinical": "#009E73",
-    "sec": "#B5568F",
-    "corporate_responsibility": "#B8770B",
+    "technology": "#2F5FB8",
+    "clinical": "#12806F",
+    "sec": "#8A4F9E",
+    "corporate_responsibility": "#A8700F",
 }
 DOMAIN_LABEL = {"technology": "Technology", "clinical": "Clinical", "sec": "SEC", "corporate_responsibility": "Corporate Responsibility"}
 
@@ -46,7 +53,7 @@ STATUS_COLOR = {"ANALYSIS_COMPLETE": SUCCESS, "HYPOTHESIS": INFO, "INFORMATION_R
 BUCKET_COLOR = {"High": SUCCESS, "Medium": WARNING, "Low": DANGER}
 UNCERTAINTY_COLOR = {"LOW": SUCCESS, "MEDIUM": WARNING, "HIGH": DANGER}
 SERIES = [BRAND, DOMAIN_COLOR["technology"], DOMAIN_COLOR["clinical"], DOMAIN_COLOR["sec"], DOMAIN_COLOR["corporate_responsibility"], MUTED]
-HEATMAP = ["#E8E7FB", BRAND_STRONG]  # light brand tint -> strong brand (confusion-matrix ramp)
+HEATMAP = [CREAM, NAVY_700]  # confusion-matrix ramp (cream -> mid navy)
 
 # --- shape / spacing -----------------------------------------------------------------------------------------
 RADIUS_CARD = "12px"
@@ -60,6 +67,10 @@ STREAMLIT_THEME = {
     "theme.backgroundColor": BG,
     "theme.secondaryBackgroundColor": BG_ALT,
     "theme.textColor": INK,
+    "theme.sidebar.backgroundColor": NAVY_900,
+    "theme.sidebar.secondaryBackgroundColor": NAVY_700,
+    "theme.sidebar.textColor": CREAM,
+    "theme.sidebar.primaryColor": CREAM,
 }
 
 

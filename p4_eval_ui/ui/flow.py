@@ -49,9 +49,10 @@ def _packet(path: str, color: str, t0: float, t1: float, r: int = 6) -> str:
     )
 
 
-def _node(x, y, w, h, stroke, dash=False, opacity=1.0, rx=10, fill_op=0.07) -> str:
+def _node(x, y, w, h, stroke, dash=False, opacity=1.0, rx=10, fill_op=0.07, light=True) -> str:
     d = ' stroke-dasharray="6 4"' if dash else ""
-    return (f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{rx}" fill="currentColor" fill-opacity="{fill_op}" '
+    fill = f'fill="{T.SURFACE}"' if light else f'fill="currentColor" fill-opacity="{fill_op}"'
+    return (f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{rx}" {fill} '
             f'stroke="{stroke}" stroke-width="2"{d} opacity="{opacity}"/>')
 
 
@@ -61,6 +62,9 @@ def _text(x, y, s, size=13, weight=400, anchor="start", opacity=1.0, fill="curre
 
 
 def build_flow_html(trace: Optional[Dict[str, Any]] = None, dark: Optional[bool] = None) -> str:
+    def node(*a, **k):
+        return _node(*a, light=(dark is not True), **k)
+
     idle = not trace
     trace = trace or {}
     routed = [str(getattr(d, "value", d)) for d in (trace.get("routing") or {}).get("domains", [])]
@@ -85,15 +89,15 @@ def build_flow_html(trace: Optional[Dict[str, Any]] = None, dark: Optional[bool]
     parts.append(_text(760, 8, "DomainResponse + citations", 11, 600, "middle", opacity=0.8))
 
     # ---- nodes ----
-    parts.append(_node(20, 174, 130, 80, "currentColor", fill_op=0.1))
+    parts.append(node(20, 174, 130, 80, "currentColor", fill_op=0.1))
     parts += [_text(85, 208, "Customer", 14, 600, "middle"), _text(85, 227, "question", 14, 600, "middle"),
               _text(85, 244, "+ optional logs", 11, anchor="middle", opacity=0.7)]
-    parts.append(_node(200, 40, 210, 350, PURPLE, fill_op=0.05, rx=14))
+    parts.append(node(200, 40, 210, 350, PURPLE, fill_op=0.05, rx=14))
     parts.append(_text(305, 62, "Manager Agent", 14, 700, "middle", fill=PURPLE))
     for k, (title, sub) in enumerate([("1  Intent router", "classify, multi-label"), ("2  Query decomposer", "one sub-query per domain"),
                                       ("3  Async dispatcher", "run agents concurrently")]):
         y = 92 + k * 96
-        parts.append(_node(214, y, 182, 76, PURPLE, fill_op=0.08, rx=8))
+        parts.append(node(214, y, 182, 76, PURPLE, fill_op=0.08, rx=8))
         parts += [_text(305, y + 32, title, 13, 600, "middle"), _text(305, y + 52, sub, 11, anchor="middle", opacity=0.7)]
     for k in range(2):  # arrows between manager steps
         y = 92 + k * 96 + 76
@@ -108,7 +112,7 @@ def build_flow_html(trace: Optional[Dict[str, Any]] = None, dark: Optional[bool]
         active = idle or val in routed
         mock = a.get("real_or_mock") == "mock"
         parts.append(f'<g opacity="{1.0 if active else 0.3}"><title>{escape(label)}: {escape(src)}</title>')
-        parts.append(_node(_AGENT_X, y, _AGENT_W, _AGENT_H, color, dash=mock, fill_op=0.1))
+        parts.append(node(_AGENT_X, y, _AGENT_W, _AGENT_H, color, dash=mock, fill_op=0.1))
         parts.append(f'<rect x="{_AGENT_X}" y="{y}" width="6" height="{_AGENT_H}" rx="3" fill="{color}"/>')
         parts.append(_text(_AGENT_X + 16, y + 22, label.replace(" agent", ""), 13, 700))
         parts.append(_text(_AGENT_X + 16, y + 39, src, 10.5, opacity=0.75))
@@ -124,10 +128,10 @@ def build_flow_html(trace: Optional[Dict[str, Any]] = None, dark: Optional[bool]
             parts.append(_text(_AGENT_X + 16, y + 61, "retrieve · rank · cite", 10.5, opacity=0.6))
         parts.append("</g>")
 
-    parts.append(_node(_SYN_IN[0], 150, 180, 100, PURPLE, fill_op=0.1, rx=14))
+    parts.append(node(_SYN_IN[0], 150, 180, 100, PURPLE, fill_op=0.1, rx=14))
     parts += [_text(890, 182, "Synthesizer", 14, 700, "middle", fill=PURPLE), _text(890, 202, "merge + rank", 11.5, anchor="middle", opacity=0.8),
               _text(890, 218, "trade-offs · next steps", 11.5, anchor="middle", opacity=0.8), _text(890, 234, "KPIs", 11.5, anchor="middle", opacity=0.8)]
-    parts.append(_node(_SYN_IN[0], 340, 180, 66, "currentColor", fill_op=0.1))
+    parts.append(node(_SYN_IN[0], 340, 180, 66, "currentColor", fill_op=0.1))
     parts += [_text(890, 368, "Consulting report", 14, 700, "middle"), _text(890, 387, "evidence · actions · KPIs", 11, anchor="middle", opacity=0.75)]
 
     # ---- packets (the request travelling) ----
