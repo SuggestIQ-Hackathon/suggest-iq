@@ -21,5 +21,21 @@ def test_dashboard_renders_on_mocks_and_runs_a_query(monkeypatch):
     at = at.run()
     assert not at.exception
     assert any("Executive summary" in s.value for s in at.subheader)
-    assert any("Provisional answer" in w.value for w in at.warning)  # no diagnostics -> banner
+    assert any("More information needed" in m.value for m in at.markdown)  # no diagnostics -> checklist card
+    assert any(b.label == "Add diagnostics and re-run" for b in at.button)
     assert len(at.tabs) == 4
+
+
+def test_followup_diagnostics_rerun_clears_the_request(monkeypatch):
+    monkeypatch.setenv("REAL_DOMAINS", "none")
+    at = st_testing.AppTest.from_file(APP, default_timeout=60).run()
+    at.text_area(key="query").set_value("Our Cisco router has intermittent connectivity failures. Which parts should we order?")
+    at = at.run()
+    _click(at, "Get consulting recommendation")
+    at = at.run()
+    at.text_area(key="followup_diag").set_value("show environment: power supply 1 FAILED")
+    at = at.run()
+    _click(at, "Add diagnostics and re-run")
+    at = at.run()
+    assert not at.exception
+    assert not any("More information needed" in m.value for m in at.markdown)  # gate satisfied -> no longer provisional

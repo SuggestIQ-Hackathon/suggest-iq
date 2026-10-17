@@ -208,6 +208,11 @@ def write_scorecard(result: Dict[str, Any], out_dir: Optional[Path] = None) -> P
     out = Path(out_dir or EVAL_DIR)
     out.mkdir(parents=True, exist_ok=True)
     (out / "scorecard.json").write_text(json.dumps(result, indent=2, default=str))
+    summary = {k: result.get(k) for k in ("generated_at", "llm_mode", "routing_accuracy", "retrieval_hit_rate", "recommendation_ndcg_at_3",
+                                          "faithfulness", "diagnostic_gate_compliance", "out_of_scope_low_confidence_rate")}
+    summary["all_real"] = all(v == "real" for v in result.get("agents_real", {}).values()) and bool(result.get("agents_real"))
+    with open(out / "history.jsonl", "a") as fh:  # one line per run, shown as a trend in the dashboard
+        fh.write(json.dumps(summary) + "\n")
     cols = ["id", "type", "expected_domains", "predicted_domains", "routing_exact", "routing_confidence", "retrieval",
             "ndcg_at_3", "precision_at_3", "faithfulness", "latency_ms", "error"]
     with open(out / "per_query.csv", "w", newline="") as fh:

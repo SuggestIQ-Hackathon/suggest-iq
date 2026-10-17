@@ -40,6 +40,20 @@ div.stButton>button[kind="primary"]:hover{filter:brightness(1.08)}
 section[data-testid="stSidebar"] div.stButton>button{border-radius:10px;text-align:left;justify-content:flex-start}
 .stTabs [data-baseweb="tab"]{font-weight:600;padding:10px 14px}
 textarea{border-radius:10px!important}
+mark{background:rgba(250,204,21,.45);color:inherit;border-radius:3px;padding:0 2px}
+.ribbon{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 14px;border:1px solid rgba(128,128,128,.28);border-radius:12px;background:rgba(128,128,128,.05);margin:6px 0 14px}
+.ribbon .node{border:1px solid rgba(128,128,128,.4);border-radius:8px;padding:2px 10px;font-size:.84rem;font-weight:600}
+.ribbon .arrow{opacity:.5}
+.need{border:1px solid #ea580c;border-left:6px solid #ea580c;border-radius:12px;padding:14px 18px;background:rgba(234,88,12,.07);margin:8px 0 6px}
+.need h4{margin:0 0 6px}
+.need ul{margin:6px 0 0;padding-left:22px}
+.need li{margin:2px 0}
+.tile{border:1px solid rgba(128,128,128,.28);border-radius:14px;padding:12px 16px;background:rgba(128,128,128,.06);height:100%}
+.tile .lab{opacity:.75;font-size:.85rem}
+.tile .val{font-size:1.9rem;font-weight:700;line-height:1.2}
+.tile .sub{font-size:.8rem;opacity:.85;margin-top:2px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+.group-h{font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;opacity:.65;margin:10px 0 2px}
 </style>
 """
 
@@ -79,3 +93,37 @@ def conf_bar(score: float, bucket: str) -> str:
 
 def card(inner_html: str) -> None:
     st.markdown(f'<div class="card">{inner_html}</div>', unsafe_allow_html=True)
+
+
+def path_ribbon(trace) -> str:
+    """One-line summary of the route a request took, built from audit_trace."""
+    agents = (trace or {}).get("agents", {})
+    routed = [str(getattr(d, "value", d)) for d in ((trace or {}).get("routing") or {}).get("domains", [])]
+    arrow = '<span class="arrow">&rarr;</span>'
+    mid = "".join(
+        f'<span class="node"><span class="dot" style="background:{STATUS_COLOR.get(agents.get(d, {}).get("status", ""), "#6b7280")}"></span>'
+        f'{esc(DOMAIN_LABEL.get(d, d))}</span>' for d in routed)
+    return ('<div class="ribbon"><span class="node">Customer</span>' + arrow + '<span class="node">Manager</span>' + arrow
+            + f'<span style="display:inline-flex;gap:6px;flex-wrap:wrap">{mid}</span>' + arrow
+            + '<span class="node">Synthesizer</span>' + arrow + '<span class="node">Report</span></div>')
+
+
+def tile(label: str, value: str, sub: str = "", color: str = "") -> None:
+    dot = f'<span class="dot" style="background:{color}"></span>' if color else ""
+    st.markdown(f'<div class="tile"><div class="lab">{esc(label)}</div><div class="val">{esc(value)}</div>'
+                f'<div class="sub">{dot}{esc(sub)}</div></div>', unsafe_allow_html=True)
+
+
+def highlight(text: str, terms) -> str:
+    """HTML-escape `text` and wrap query terms in <mark>."""
+    import re
+    out = esc(text)
+    for t in sorted({t for t in terms if len(t) > 3}, key=len, reverse=True):
+        out = re.sub(rf"(?i)\b({re.escape(esc(t))})", r"<mark>\1</mark>", out)
+    return out
+
+
+def query_terms(query: str):
+    import re
+    stop = {"which", "should", "would", "could", "about", "their", "there", "what", "from", "with", "that", "this", "have", "does"}
+    return [w for w in re.findall(r"[A-Za-z0-9\-]+", query) if len(w) > 3 and w.lower() not in stop]

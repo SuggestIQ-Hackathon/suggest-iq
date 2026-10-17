@@ -158,13 +158,22 @@ def build_flow_html(trace: Optional[Dict[str, Any]] = None, dark: Optional[bool]
 html,body{{margin:0;background:transparent;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:{ink}}}
 {media}
 figure{{margin:0;padding:8px 4px}}
-svg{{width:100%;max-width:1000px;height:auto;display:block;margin:0 auto}}
+.wrap{{overflow-x:auto}}
+svg{{width:100%;min-width:760px;max-width:1000px;height:auto;display:block;margin:0 auto}}
+.ctl{{display:flex;gap:8px;justify-content:flex-end;padding:0 8px}}
+.ctl button{{font:inherit;font-size:12px;border:1px solid rgba(128,128,128,.5);background:transparent;color:inherit;border-radius:8px;padding:3px 12px;cursor:pointer}}
 figcaption{{font-size:13px;opacity:.85;padding:6px 8px 0}}
 .legend{{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;opacity:.85;padding:4px 8px}}
 .k i{{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}}
 </style></head><body><figure>
-<svg viewBox="0 -14 1000 454" role="img" aria-label="{aria}" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif">
+<div class="ctl"><button id="pp" type="button">Pause</button><button id="rp" type="button">Replay</button></div>
+<div class="wrap"><svg id="flow" viewBox="0 -14 1000 454" role="img" aria-label="{aria}" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif">
 {''.join(parts)}
-</svg>
+</svg></div>
 <div class="legend">{legend}</div>
-<figcaption>{escape(caption)}</figcaption></figure></body></html>"""
+<figcaption>{escape(caption)}</figcaption></figure>
+<script>
+var svg=document.getElementById("flow"),pp=document.getElementById("pp"),paused=false;
+pp.onclick=function(){{paused=!paused;paused?svg.pauseAnimations():svg.unpauseAnimations();pp.textContent=paused?"Play":"Pause";}};
+document.getElementById("rp").onclick=function(){{svg.setCurrentTime(0);if(paused){{svg.unpauseAnimations();paused=false;pp.textContent="Pause";}}}};
+</script></body></html>"""
