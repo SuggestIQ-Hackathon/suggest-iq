@@ -1,0 +1,10 @@
+# Shared dependencies (P1 owns this file). Members add THEIR OWN extras in pN_*/requirements.txt.
+pydantic>=2.6
+numpy>=1.26
+python-dotenv>=1.0
+litellm>=1.40
+pypdf>=4.0
+pandas>=2.1
+requests>=2.31
+beautifulsoup4>=4.12
+pytest>=8.0

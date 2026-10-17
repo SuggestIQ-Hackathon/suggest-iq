@@ -1,0 +1,16 @@
+{
+  "technology": {
+    "answerable": "Which Cisco Catalyst 8200 interface options are available for WAN connectivity?",
+    "underspecified": "Our Cisco router has intermittent connectivity failures. Which replacement parts should we order?"
+  },
+  "clinical": {
+    "answerable": "Which Agilent instrument supports whole-slide digital pathology imaging?",
+    "underspecified": "Our Agilent Seahorse analyzer gives inconsistent readings. Which component should we replace?"
+  },
+  "sec": {
+    "answerable": "What risk factors does Cisco disclose about its supply chain?"
+  },
+  "corporate_responsibility": {
+    "answerable": "List major food insecurity reasons in 2023 from the State of Food Security and Nutrition in the World 2023 report."
+  }
+}

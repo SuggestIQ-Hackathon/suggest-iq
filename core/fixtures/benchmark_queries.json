@@ -1,0 +1,399 @@
+[
+  {
+    "id": "Q01",
+    "query": "Our Cisco Catalyst 8200 edge router has intermittent connectivity failures. Which replacement parts should we order?",
+    "expected_domains": [
+      "technology"
+    ],
+    "type": "single",
+    "expected_sources": [
+      "8200"
+    ],
+    "expected_keywords": [
+      "diagnostics",
+      "show tech-support",
+      "hypothesis"
+    ]
+  },
+  {
+    "id": "Q02",
+    "query": "Which Cisco router family supports redundant route processors for WAN aggregation?",
+    "expected_domains": [
+      "technology"
+    ],
+    "type": "single",
+    "expected_sources": [
+      "ASR",
+      "1000"
+    ],
+    "expected_keywords": [
+      "redundancy",
+      "route processor"
+    ]
+  },
+  {
+    "id": "Q03",
+    "query": "What IPsec throughput and memory options does the Cisco Catalyst 8300 provide?",
+    "expected_domains": [
+      "technology"
+    ],
+    "type": "single",
+    "expected_sources": [
+      "8300"
+    ],
+    "expected_keywords": [
+      "IPsec",
+      "throughput",
+      "memory"
+    ]
+  },
+  {
+    "id": "Q04",
+    "query": "Can we run Cisco Catalyst 8000V on a public cloud instead of buying hardware?",
+    "expected_domains": [
+      "technology"
+    ],
+    "type": "single",
+    "expected_sources": [
+      "8000V"
+    ],
+    "expected_keywords": [
+      "virtual",
+      "cloud"
+    ]
+  },
+  {
+    "id": "Q05",
+    "query": "What WAN interface modules can I add to a Cisco 4000 Series ISR?",
+    "expected_domains": [
+      "technology"
+    ],
+    "type": "single",
+    "expected_sources": [
+      "4000",
+      "ISR"
+    ],
+    "expected_keywords": [
+      "module",
+      "WAN"
+    ]
+  },
+  {
+    "id": "Q06",
+    "query": "Which Agilent instrument is best for real-time metabolic analysis of live cells in our lab?",
+    "expected_domains": [
+      "clinical"
+    ],
+    "type": "single",
+    "expected_sources": [
+      "Seahorse"
+    ],
+    "expected_keywords": [
+      "Seahorse",
+      "metabolic"
+    ]
+  },
+  {
+    "id": "Q07",
+    "query": "Our lab needs fast whole-slide imaging for pathology. Which Agilent scanner should we evaluate?",
+    "expected_domains": [
+      "clinical"
+    ],
+    "type": "single",
+    "expected_sources": [
+      "NanoZoomer"
+    ],
+    "expected_keywords": [
+      "whole-slide",
+      "scanner"
+    ]
+  },
+  {
+    "id": "Q08",
+    "query": "Which Agilent product automates special stains in a pathology workflow?",
+    "expected_domains": [
+      "clinical"
+    ],
+    "type": "single",
+    "expected_sources": [
+      "Artisan"
+    ],
+    "expected_keywords": [
+      "special stains"
+    ]
+  },
+  {
+    "id": "Q09",
+    "query": "What does the clinical literature say about machine learning for predicting heart attacks?",
+    "expected_domains": [
+      "clinical"
+    ],
+    "type": "single",
+    "expected_sources": [
+      "Heart",
+      "Machine_Learning"
+    ],
+    "expected_keywords": [
+      "heart",
+      "prediction",
+      "machine learning"
+    ]
+  },
+  {
+    "id": "Q10",
+    "query": "Summarize clinical trial evidence on interventions for type 2 diabetes in the provided trial data.",
+    "expected_domains": [
+      "clinical"
+    ],
+    "type": "single",
+    "expected_sources": [
+      "ctg-studies_diabetes"
+    ],
+    "expected_keywords": [
+      "diabetes",
+      "intervention"
+    ]
+  },
+  {
+    "id": "Q11",
+    "query": "What are the main risk factors Cisco discloses in its latest 10-K?",
+    "expected_domains": [
+      "sec"
+    ],
+    "type": "single",
+    "expected_sources": [
+      "Cisco"
+    ],
+    "expected_keywords": [
+      "risk factors",
+      "supply chain"
+    ]
+  },
+  {
+    "id": "Q12",
+    "query": "What competitive risks does Agilent describe in its annual report?",
+    "expected_domains": [
+      "sec"
+    ],
+    "type": "single",
+    "expected_sources": [
+      "Agilent"
+    ],
+    "expected_keywords": [
+      "competition",
+      "competitive"
+    ]
+  },
+  {
+    "id": "Q13",
+    "query": "How did Cisco's revenue and gross margin change in its most recent fiscal year?",
+    "expected_domains": [
+      "sec"
+    ],
+    "type": "single",
+    "expected_sources": [
+      "Cisco"
+    ],
+    "expected_keywords": [
+      "revenue",
+      "gross margin"
+    ]
+  },
+  {
+    "id": "Q14",
+    "query": "What regulatory and compliance exposures does Alphabet disclose?",
+    "expected_domains": [
+      "sec"
+    ],
+    "type": "single",
+    "expected_sources": [
+      "Alphabet"
+    ],
+    "expected_keywords": [
+      "regulatory",
+      "compliance"
+    ]
+  },
+  {
+    "id": "Q15",
+    "query": "Compare Cisco and Agilent supply-chain risks from their SEC filings.",
+    "expected_domains": [
+      "sec"
+    ],
+    "type": "single",
+    "expected_sources": [
+      "Cisco",
+      "Agilent"
+    ],
+    "expected_keywords": [
+      "supply chain",
+      "component"
+    ]
+  },
+  {
+    "id": "Q16",
+    "query": "List major food insecurity reasons in 2023 from within the context of the State of Food Security and Nutrition in the World 2023 report.",
+    "expected_domains": [
+      "corporate_responsibility"
+    ],
+    "type": "single",
+    "expected_sources": [
+      "SOFI-2023"
+    ],
+    "expected_keywords": [
+      "conflict",
+      "climate",
+      "economic"
+    ]
+  },
+  {
+    "id": "Q17",
+    "query": "List major food insecurity reasons in 2024 from within the context of the State of Food Security and Nutrition in the World 2024 report.",
+    "expected_domains": [
+      "corporate_responsibility"
+    ],
+    "type": "single",
+    "expected_sources": [
+      "SOFI-2024"
+    ],
+    "expected_keywords": [
+      "food insecurity"
+    ]
+  },
+  {
+    "id": "Q18",
+    "query": "Explain malnutrition in war zones from within the context of the State of Food Security and Nutrition in the World report.",
+    "expected_domains": [
+      "corporate_responsibility"
+    ],
+    "type": "single",
+    "expected_sources": [
+      "SOFI"
+    ],
+    "expected_keywords": [
+      "conflict",
+      "malnutrition"
+    ]
+  },
+  {
+    "id": "Q19",
+    "query": "Explain how rising food prices affect food security.",
+    "expected_domains": [
+      "corporate_responsibility"
+    ],
+    "type": "single",
+    "expected_sources": [
+      "SOFI"
+    ],
+    "expected_keywords": [
+      "price",
+      "affordability"
+    ]
+  },
+  {
+    "id": "Q20",
+    "query": "Which technology investments could most improve food security and sustainability outcomes for a corporate responsibility program?",
+    "expected_domains": [
+      "corporate_responsibility"
+    ],
+    "type": "single",
+    "expected_sources": [
+      "SOFI"
+    ],
+    "expected_keywords": [
+      "investment",
+      "technology"
+    ]
+  },
+  {
+    "id": "Q21",
+    "query": "Our Cisco enterprise router is failing intermittently. What should we order, and is Cisco financially stable enough to rely on as our long-term supplier?",
+    "expected_domains": [
+      "technology",
+      "sec"
+    ],
+    "type": "cross",
+    "expected_sources": [
+      "8200",
+      "Cisco"
+    ],
+    "expected_keywords": [
+      "replacement",
+      "risk"
+    ]
+  },
+  {
+    "id": "Q22",
+    "query": "We are upgrading lab network switches with Cisco gear and want to understand Cisco's supply chain risk and the sustainability impact of the upgrade.",
+    "expected_domains": [
+      "technology",
+      "sec",
+      "corporate_responsibility"
+    ],
+    "type": "cross",
+    "expected_sources": [
+      "Cisco",
+      "SOFI"
+    ],
+    "expected_keywords": [
+      "supply chain",
+      "sustainability"
+    ]
+  },
+  {
+    "id": "Q23",
+    "query": "Should our lab buy an Agilent NanoZoomer scanner given Agilent's financial and operational risks?",
+    "expected_domains": [
+      "clinical",
+      "sec"
+    ],
+    "type": "cross",
+    "expected_sources": [
+      "NanoZoomer",
+      "Agilent"
+    ],
+    "expected_keywords": [
+      "scanner",
+      "risk"
+    ]
+  },
+  {
+    "id": "Q24",
+    "query": "Which Google Cloud or Cisco technology investments could improve food security outcomes, and what financial risks come with them?",
+    "expected_domains": [
+      "technology",
+      "sec",
+      "corporate_responsibility"
+    ],
+    "type": "cross",
+    "expected_sources": [
+      "Alphabet",
+      "Cisco",
+      "SOFI"
+    ],
+    "expected_keywords": [
+      "investment",
+      "risk",
+      "food security"
+    ]
+  },
+  {
+    "id": "Q25",
+    "query": "Recommend diagnostic lab equipment for a hospital program focused on diabetes and heart disease, including vendor financial risk and ESG considerations.",
+    "expected_domains": [
+      "clinical",
+      "sec",
+      "corporate_responsibility"
+    ],
+    "type": "cross",
+    "expected_sources": [
+      "Agilent",
+      "diabetes"
+    ],
+    "expected_keywords": [
+      "instrument",
+      "risk",
+      "ESG"
+    ]
+  }
+]
