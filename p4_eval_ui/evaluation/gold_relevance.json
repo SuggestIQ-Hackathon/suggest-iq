@@ -1,0 +1,54 @@
+{
+  "_comment": "Graded relevance (0-3) of recommendation item_ids per benchmark query. Judgments written by P4 from the P2 catalog (cisco_parts.json, agilent_instruments.json). Queries whose ids all start with 'TODO-' (strategy items awaiting P3) are skipped by the runner, never scored.",
+  "Q35": {
+    "CISCO-C8200-POWER-SUPPLY": 3,
+    "CISCO-C8200-ROUTE-PROCESSOR": 1,
+    "CISCO-C8200-NETWORK-INTERFACE": 1
+  },
+  "Q36": {
+    "CISCO-C8300-SFP-OPTICS": 3,
+    "CISCO-C8300-NETWORK-INTERFACE": 2
+  },
+  "Q37": {
+    "AGILENT-SEAHORSE-PLATE-CARTRIDGE": 3,
+    "AGILENT-SEAHORSE-CONSUMABLES": 2
+  },
+  "Q02": {
+    "CISCO-ASR1000-ROUTE-PROCESSOR": 3,
+    "CISCO-ASR1000-POWER-SUPPLY": 2
+  },
+  "Q03": {
+    "CISCO-C8300-ROUTE-PROCESSOR": 3,
+    "CISCO-C8300-NETWORK-INTERFACE": 2,
+    "CISCO-C8300-MEMORY-STORAGE": 1
+  },
+  "Q04": {
+    "CISCO-C8000V-VIRTUAL-ROUTER": 3,
+    "CISCO-C8000V-LICENSE": 2
+  },
+  "Q05": {
+    "CISCO-ISR4000-NETWORK-INTERFACE": 3
+  },
+  "Q06": {
+    "AGILENT-SEAHORSE-ANALYZER": 3,
+    "AGILENT-SEAHORSE-PLATE-CARTRIDGE": 1,
+    "AGILENT-SEAHORSE-CONSUMABLES": 1
+  },
+  "Q07": {
+    "AGILENT-NANOZOOMER-SLIDE-SCANNER-IVD": 3,
+    "AGILENT-DIGITAL-PATHOLOGY-SCANNER": 2
+  },
+  "Q08": {
+    "AGILENT-ARTISAN-LINK-PRO": 3,
+    "AGILENT-ARTISAN-SPECIAL-STAINS-CONSUMABLES": 2
+  },
+  "Q20": {
+    "TODO-STRAT-FOOD-SECURITY-TECH": 3
+  },
+  "Q22": {
+    "TODO-STRAT-NETWORK-REFRESH": 3
+  },
+  "Q24": {
+    "TODO-STRAT-FOOD-SECURITY-TECH": 3
+  }
+}
