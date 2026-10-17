@@ -3,6 +3,7 @@
 Works on mocks and on real agents (REAL_DOMAINS in .env / environment). Reads ConsultingReport + audit_trace only.
 """
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -13,11 +14,16 @@ if str(REPO_ROOT) not in sys.path:  # allow `streamlit run` from any directory
 import altair as alt  # noqa: E402
 import pandas as pd  # noqa: E402
 import streamlit as st  # noqa: E402
+import streamlit.components.v1 as components  # noqa: E402
 
 from core import llm, registry  # noqa: E402
 from p4_eval_ui.evaluation import benchmark  # noqa: E402
 from p4_eval_ui.evaluation.explain import explain  # noqa: E402
+from p4_eval_ui.ui import theme  # noqa: E402
+from p4_eval_ui.ui.flow import build_flow_html  # noqa: E402
 
+esc = theme.esc
+FLOW_HEIGHT = 540
 BRIEF_EXAMPLE = ("Our Cisco enterprise router is experiencing intermittent connectivity failures. Which replacement "
                  "parts should we order, and what actions should we take to prevent future outages?")
 DIAG_EXAMPLE = ("show environment: power supply 1 reports FAILED, power supply 2 OK.\n"
@@ -27,9 +33,10 @@ DIAG_EXAMPLE = ("show environment: power supply 1 reports FAILED, power supply 2
 
 def _examples():
     items = json.loads((REPO_ROOT / "core" / "fixtures" / "benchmark_queries.json").read_text())
-    pick = {"Q07": "Clinical", "Q11": "SEC", "Q16": "Food security", "Q21": "Cross-domain: tech + SEC", "Q22": "Cross-domain: tech + SEC + CSR"}
+    pick = {"Q07": "Clinical: pathology scanner", "Q11": "SEC: Cisco risk factors", "Q16": "Food security 2023",
+            "Q21": "Cross-domain: tech + SEC", "Q22": "Cross-domain: tech + SEC + CSR"}
     out = [("Brief example: Cisco router", BRIEF_EXAMPLE)]
-    out += [(f"{label}", i["query"]) for i in items for qid, label in pick.items() if i["id"] == qid]
+    out += [(label, i["query"]) for i in items for qid, label in pick.items() if i["id"] == qid]
     return out
 
 
@@ -43,24 +50,33 @@ def _set_query(text: str) -> None:
 
 
 def render_sidebar() -> None:
-    st.sidebar.title("Consulting platform")
-    st.sidebar.caption(f"LLM mode: **{llm.llm_mode()}**  ·  REAL_DOMAINS: **{__import__('os').getenv('REAL_DOMAINS', 'auto')}**")
-    st.sidebar.markdown("**Try an example**")
+    st.sidebar.markdown("### Try an example")
     for label, text in _examples():
         st.sidebar.button(label, key=f"ex_{label}", on_click=_set_query, args=(text,), use_container_width=True)
+    st.sidebar.markdown("---")
     st.sidebar.button("Add diagnostics example", key="ex_diag", on_click=lambda: st.session_state.update(diagnostics=DIAG_EXAMPLE),
                       use_container_width=True)
+    st.sidebar.caption("Tip: run the Cisco example without logs first, then add the diagnostics and run again.")
 
 
-def _confidence_bar(score: float, bucket: str) -> None:
-    st.progress(min(max(score, 0.0), 1.0), text=f"Confidence {score:.2f}  ({bucket})")
+def _is_dark():
+    try:
+        return st.context.theme.type == "dark"
+    except Exception:  # noqa: BLE001 - older Streamlit or unknown theme: let the iframe follow the browser
+        return None
+
+
+def show_flow(trace) -> None:
+    components.html(build_flow_html(trace, dark=_is_dark()), height=FLOW_HEIGHT, scrolling=False)
 
 
 def render_consult(manager) -> None:
-    st.text_area("Customer question", key="query", height=100,
-                 placeholder="Describe the business problem, e.g. the Cisco router example from the sidebar.")
-    st.text_area("Diagnostics / telemetry (optional: paste logs, error codes, versions)", key="diagnostics", height=100)
-    if st.button("Get consulting recommendation", type="primary", disabled=manager is None):
+    with st.container(border=True):
+        st.text_area("Customer question", key="query", height=96,
+                     placeholder="Describe the business problem, e.g. the Cisco router example from the sidebar.")
+        st.text_area("Diagnostics / telemetry (optional: paste logs, error codes, versions)", key="diagnostics", height=96)
+        run = st.button("Get consulting recommendation", type="primary", disabled=manager is None)
+    if run:
         q = (st.session_state.get("query") or "").strip()
         if not q:
             st.warning("Enter a question first.")
@@ -73,38 +89,44 @@ def render_consult(manager) -> None:
                 st.error(f"The pipeline failed: {type(err).__name__}: {err}")
     report = st.session_state.get("report")
     if report is None:
-        st.info("Ask a question to see the recommendation, evidence and execution trace.")
+        st.subheader("How it works")
+        show_flow(None)
         return
     view = explain(report)
     if view.banner:
         st.warning(view.banner)
     st.subheader("Executive summary")
-    st.write(report.executive_summary)
+    st.markdown(f'<div class="summary">{esc(report.executive_summary)}</div>', unsafe_allow_html=True)
     cols = st.columns(3)
-    cols[0].metric("Domains consulted", ", ".join(d.value for d in report.detected_domains))
-    cols[1].metric("Overall confidence", view.overall_confidence)
+    cols[0].metric("Domains consulted", len(report.detected_domains))
+    prov = view.overall_confidence.endswith("(provisional)")
+    cols[1].metric("Overall confidence" + (" (provisional)" if prov else ""), view.overall_confidence.replace(" (provisional)", ""))
     cols[2].metric("Recommendations", len(view.recommendations))
+    st.markdown(" ".join(theme.domain_pill(d.value) for d in report.detected_domains), unsafe_allow_html=True)
+
+    st.subheader("How your question travelled")
+    show_flow(report.audit_trace)
+
     if report.cross_domain_synthesis:
         st.subheader("Cross-domain synthesis")
-        st.write(report.cross_domain_synthesis)
+        st.markdown(f'<div class="card">{esc(report.cross_domain_synthesis)}</div>', unsafe_allow_html=True)
     st.subheader("Recommendations")
     if not view.recommendations:
         st.caption("No recommendations yet.")
     for r in view.recommendations:
-        with st.container(border=True):
-            st.markdown(f"**{r.title}**  ·  `{r.category}`  ·  {r.domain or 'n/a'}")
-            _confidence_bar(r.confidence_score, r.confidence_bucket)
-            st.write("**Why:** " + r.why)
-            if r.evidence_sources:
-                st.caption(f"Evidence ({r.evidence_count}): " + "; ".join(r.evidence_sources))
-            for c in r.caveats:
-                st.caption("⚠ " + c)
+        caveats = "".join(f'<div class="caveat">⚠ {esc(c)}</div>' for c in r.caveats)
+        ev = f'<div class="meta">Evidence ({r.evidence_count}): {esc("; ".join(r.evidence_sources))}</div>' if r.evidence_sources else ""
+        st.markdown(
+            f'<div class="card"><div class="rec-top"><div><div class="rec-title">{esc(r.title)}</div>'
+            f'<div class="meta">{esc(r.category)}</div></div><div>{theme.domain_pill(r.domain) if r.domain else ""}</div></div>'
+            f'{theme.conf_bar(r.confidence_score, r.confidence_bucket)}'
+            f'<div class="why"><b>Why:</b> {esc(r.why)}</div>{ev}{caveats}</div>',
+            unsafe_allow_html=True)
     st.subheader("Next steps")
     for i, s in enumerate(report.next_steps, 1):
-        st.markdown(f"{i}. {s}")
-    st.subheader("How impact will be measured (KPIs)")
-    for k in report.measuring_impact_kpis:
-        st.markdown(f"- {k}")
+        st.markdown(f'<div class="step"><div class="n">{i}</div><div>{esc(s)}</div></div>', unsafe_allow_html=True)
+    st.subheader("How impact will be measured")
+    st.markdown("".join(f'<span class="kpi">{esc(k)}</span>' for k in report.measuring_impact_kpis), unsafe_allow_html=True)
     if view.what_would_change_this_answer:
         with st.expander("What would change this answer"):
             for w in view.what_would_change_this_answer:
@@ -114,17 +136,21 @@ def render_consult(manager) -> None:
 def render_trace() -> None:
     report = st.session_state.get("report")
     if report is None:
-        st.info("Run a consultation to see the execution trace.")
+        st.subheader("Architecture")
+        show_flow(None)
+        st.info("Run a consultation to see the real path, latency and status of each agent.")
         return
     t = report.audit_trace
     c = st.columns(3)
     c[0].metric("Total latency (ms)", t.get("total_ms", "n/a"))
     c[1].metric("LLM mode", t.get("mode", "n/a"))
     c[2].metric("Fallbacks used", len(t.get("fallbacks_used", [])))
-    st.subheader("1. Routing decision")
+    show_flow(t)
     routing = t.get("routing", {})
-    st.write(f"Detected: **{', '.join(str(d) for d in routing.get('domains', []))}**  ·  cross-domain: "
-             f"**{routing.get('is_cross_domain')}**  ·  confidence: **{routing.get('confidence')}**")
+    st.subheader("1. Routing decision")
+    st.markdown(f'Detected: {" ".join(theme.domain_pill(str(getattr(d, "value", d))) for d in routing.get("domains", []))}'
+                f' &nbsp; cross-domain: **{routing.get("is_cross_domain")}** &nbsp; confidence: **{routing.get("confidence")}**',
+                unsafe_allow_html=True)
     if routing.get("rationale"):
         st.caption(routing["rationale"])
     st.json(routing.get("sub_queries", {}), expanded=False)
@@ -146,16 +172,17 @@ def render_evidence() -> None:
         st.info("Run a consultation to see the evidence.")
         return
     for domain, resp in report.domain_findings.items():
-        with st.container(border=True):
-            st.markdown(f"### {domain}  ·  `{resp.status}`  ·  uncertainty **{resp.uncertainty_level}**")
-            st.write(resp.findings_summary)
-            if resp.missing_diagnostics_needed:
-                st.warning("Missing information: " + "; ".join(resp.missing_diagnostics_needed))
-            st.caption(f"{len(resp.citations)} citation(s)")
-            for c in resp.citations:
-                where = c.source_doc + (f", p.{c.page}" if c.page else "") + (f", {c.section}" if c.section else "")
-                with st.expander(where):
-                    st.write(f"“{c.snippet}”")
+        missing = (f'<div class="caveat">⚠ Missing information: {esc("; ".join(resp.missing_diagnostics_needed))}</div>'
+                   if resp.missing_diagnostics_needed else "")
+        st.markdown(
+            f'<div class="card"><div class="rec-top"><div class="rec-title">{esc(theme.DOMAIN_LABEL.get(domain, domain))}</div>'
+            f'<div>{theme.status_pill(resp.status)} {theme.pill("uncertainty " + resp.uncertainty_level, theme.BUCKET_COLOR["Low"] if resp.uncertainty_level == "HIGH" else theme.BUCKET_COLOR["Medium"] if resp.uncertainty_level == "MEDIUM" else theme.BUCKET_COLOR["High"])}</div></div>'
+            f'<div class="why">{esc(resp.findings_summary)}</div>{missing}'
+            f'<div class="meta">{len(resp.citations)} citation(s)</div></div>', unsafe_allow_html=True)
+        for c in resp.citations:
+            where = c.source_doc + (f", p.{c.page}" if c.page else "") + (f", {c.section}" if c.section else "")
+            with st.expander(where):
+                st.markdown(f'<div class="cite">“{esc(c.snippet)}”</div>', unsafe_allow_html=True)
 
 
 def _pct(v) -> str:
@@ -187,15 +214,20 @@ def render_evaluation(manager) -> None:
     m[3].metric("Errors", res["errors"])
 
     st.subheader("Retrieval hit-rate by domain")
-    df = pd.DataFrame({"domain": list(res["retrieval_hit_rate_by_domain"]), "hit_rate": [v if v is not None else 0 for v in res["retrieval_hit_rate_by_domain"].values()]})
-    st.altair_chart(alt.Chart(df).mark_bar().encode(x="domain", y=alt.Y("hit_rate", scale=alt.Scale(domain=[0, 1])), tooltip=["domain", "hit_rate"]), use_container_width=True)
+    df = pd.DataFrame({"domain": [theme.DOMAIN_LABEL.get(d, d) for d in res["retrieval_hit_rate_by_domain"]],
+                       "hit_rate": [v if v is not None else 0 for v in res["retrieval_hit_rate_by_domain"].values()]})
+    st.altair_chart(alt.Chart(df).mark_bar(cornerRadiusEnd=6).encode(
+        x=alt.X("domain", sort=None, title=None), y=alt.Y("hit_rate", scale=alt.Scale(domain=[0, 1]), title="hit-rate"),
+        color=alt.Color("domain", legend=None, scale=alt.Scale(range=list(theme.DOMAIN_COLOR.values()))), tooltip=["domain", "hit_rate"]),
+        use_container_width=True)
 
     st.subheader("Routing: per-domain precision / recall")
     st.dataframe(pd.DataFrame(res["per_domain_routing"]).T, use_container_width=True)
     st.subheader("Routing: gold domain (rows) vs predicted domain (columns), query counts")
     cm = pd.DataFrame(res["confusion_matrix"]).T
     long = cm.reset_index().melt(id_vars="index", var_name="predicted", value_name="queries").rename(columns={"index": "gold"})
-    heat = alt.Chart(long).mark_rect().encode(x="predicted:N", y="gold:N", color=alt.Color("queries:Q", scale=alt.Scale(scheme="blues")), tooltip=["gold", "predicted", "queries"])
+    heat = alt.Chart(long).mark_rect(cornerRadius=4).encode(x="predicted:N", y="gold:N", color=alt.Color("queries:Q", scale=alt.Scale(scheme="blues")),
+                                                           tooltip=["gold", "predicted", "queries"])
     st.altair_chart(heat + heat.mark_text().encode(text="queries:Q", color=alt.value("black")), use_container_width=True)
 
     st.subheader("Confidence calibration (top recommendation vs gold relevance)")
@@ -210,12 +242,18 @@ def render_evaluation(manager) -> None:
 
 def main() -> None:
     st.set_page_config(page_title="AI Consulting Platform", page_icon="📊", layout="wide")
-    st.title("AI Management Consulting Platform")
+    theme.inject_css()
+    theme.hero(llm.llm_mode(), os.getenv("REAL_DOMAINS", "auto"))
     render_sidebar()
     manager = get_manager()
+    demo = st.query_params.get("demo")  # ?demo=cisco or ?demo=cisco-diag preloads a run (handy for demos and screenshots)
+    if demo and manager is not None and "report" not in st.session_state:
+        st.session_state["query"] = BRIEF_EXAMPLE
+        st.session_state["diagnostics"] = DIAG_EXAMPLE if demo == "cisco-diag" else ""
+        st.session_state["report"] = manager.handle(BRIEF_EXAMPLE, {"diagnostics": DIAG_EXAMPLE} if demo == "cisco-diag" else None)
     if manager is None:
         st.error("The Manager Agent (P1) is not built yet, so the platform cannot run.")
-    tabs = st.tabs(["Consult", "Agent trace", "Evidence", "Evaluation"])
+    tabs = st.tabs(["Consult", "Request flow", "Evidence", "Evaluation"])
     with tabs[0]:
         render_consult(manager)
     with tabs[1]:
