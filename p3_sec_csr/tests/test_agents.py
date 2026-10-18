@@ -17,9 +17,17 @@ class StubSECKB:
     ]
 
     def search(self, query, k=5, company=None, item=None, fiscal_year=None):
+        generic_query = company is None
+        company = company or "Alphabet"
         text = (
-            f"{company} disclosed supply chain, competitive, regulatory, operational, and financial risks. "
-            "Component availability and supplier concentration may disrupt operations."
+            "As a Delaware corporation, Alphabet is subject to Delaware anti-takeover "
+            "provisions governing business combinations with holders of 15% or more of "
+            "its voting stock."
+            if generic_query
+            else (
+                f"{company} disclosed supply chain, competitive, regulatory, operational, and financial risks. "
+                "Component availability and supplier concentration may disrupt operations."
+            )
         )
         chunk = Chunk(
             id=f"{company}-risk",
@@ -126,6 +134,25 @@ def test_sec_agent_labels_out_of_corpus_entity_high_uncertainty():
     assert all(citation.snippet.startswith('"company":') for citation in response.citations)
 
 
+def test_sec_agent_searches_all_filings_for_supported_topic_without_company():
+    agent = SECAgent()
+    agent.kb = StubSECKB()
+    response = agent.run("What is Delaware law?")
+    assert response.status == "ANALYSIS_COMPLETE"
+    assert response.uncertainty_level != "HIGH"
+    assert response.citations[0].source_doc == "Alphabet_10-K_FY2025.pdf"
+    assert "not general legal advice" in response.findings_summary
+    assert not response.recommendations
+
+
+def test_sec_agent_corrects_supported_topic_typo_before_retrieval():
+    agent = SECAgent()
+    agent.kb = StubSECKB()
+    response = agent.run("Tell me about Delware law")
+    assert response.uncertainty_level != "HIGH"
+    assert response.citations[0].source_doc == "Alphabet_10-K_FY2025.pdf"
+
+
 def test_sec_agent_abstains_from_current_market_data_requests():
     agent = SECAgent()
     agent.kb = StubSECKB()
@@ -172,6 +199,25 @@ def test_csr_agent_labels_unsupported_year_high_uncertainty():
     assert response.status == "ANALYSIS_COMPLETE"
     assert response.uncertainty_level == "HIGH"
     assert "does not contain a 2025 report" in response.findings_summary
+
+
+def test_csr_agent_corrects_supported_topic_typo_before_retrieval():
+    agent = CSRAgent()
+    agent.kb = StubCSRKB()
+    response = agent.run("Tell me about foood security")
+    assert response.uncertainty_level != "HIGH"
+    assert response.citations[0].source_doc == "SOFI-2024.pdf"
+    assert "food insecurity" in response.findings_summary.lower()
+
+
+def test_csr_agent_rejects_unrelated_questions():
+    agent = CSRAgent()
+    agent.kb = StubCSRKB()
+    response = agent.run("What is the capital of France?")
+    assert response.status == "ANALYSIS_COMPLETE"
+    assert response.uncertainty_level == "HIGH"
+    assert not response.citations
+    assert not response.recommendations
 
 
 def test_csr_agent_does_not_invent_company_emissions_metrics():
