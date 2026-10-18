@@ -27,6 +27,7 @@ esc = theme.esc
 FLOW_HEIGHT = 560
 BRIEF_EXAMPLE = ("Our Cisco enterprise router is experiencing intermittent connectivity failures. Which replacement "
                  "parts should we order, and what actions should we take to prevent future outages?")
+BRIEF_WITH_MODEL = BRIEF_EXAMPLE.replace("Cisco enterprise router", "Cisco Catalyst 8200 enterprise router")  # a model number lets the recommender pick compatible parts
 DIAG_EXAMPLE = (
     "show tech-support output attached: no crash files found.\n"
     "show logging: repeated power-supply 1 fault messages and WAN link flaps.\n"
@@ -53,7 +54,7 @@ def _examples():
     items = {i["id"]: i["query"] for i in json.loads((REPO_ROOT / "core" / "fixtures" / "benchmark_queries.json").read_text())}
     return [
         ("Failing Cisco router", BRIEF_EXAMPLE, ""),
-        ("Same, with logs attached", BRIEF_EXAMPLE, DIAG_EXAMPLE),
+        ("Same, with logs attached", BRIEF_WITH_MODEL, DIAG_EXAMPLE),
         ("Pathology scanner", items["Q07"], ""),
         ("Cisco risk factors", items["Q11"], ""),
         ("Food insecurity in 2023", items["Q16"], ""),
