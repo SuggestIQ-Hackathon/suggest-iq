@@ -48,7 +48,7 @@ def _examples():
     return [
         ("Failing Cisco router", BRIEF_EXAMPLE, ""),
         ("Same, with logs attached", BRIEF_EXAMPLE, DIAG_EXAMPLE),
-        ("Pathology scanner for our lab", items["Q07"], ""),
+        ("Pathology scanner", items["Q07"], ""),
         ("Cisco risk factors", items["Q11"], ""),
         ("Food insecurity in 2023", items["Q16"], ""),
         ("Cross-domain example", items["Q22"], ""),
@@ -94,7 +94,7 @@ def show_flow(trace) -> None:
 def _run(manager, query: str, diagnostics: str) -> None:
     ctx = {"diagnostics": diagnostics.strip()} if diagnostics and diagnostics.strip() else None
     try:
-        with st.spinner("Routing to specialist agents..."):
+        with st.spinner("Suggest IQ is routing your question to the right specialists..."):
             st.session_state["report"] = manager.handle(query, ctx)
             st.session_state["report_had_diagnostics"] = bool(ctx)
     except Exception as err:  # noqa: BLE001
@@ -236,7 +236,7 @@ def render_answer(manager, report) -> None:
         caveats = "".join(f'<div class="caveat">⚠ {esc(c)}</div>' for c in r.caveats)
         ev = f'<div class="meta">Evidence ({r.evidence_count}): {esc("; ".join(r.evidence_sources))}</div>' if r.evidence_sources else ""
         st.markdown(
-            f'<div class="card"><div class="rec-top"><div><div class="rec-title">{esc(r.title)}</div>'
+            f'<div class="card accent" style="--accent:{T.DOMAIN_COLOR.get(r.domain or "", T.BRAND)}"><div class="rec-top"><div><div class="rec-title">{esc(r.title)}</div>'
             f'<div class="meta">{esc(r.category)}</div></div><div>{theme.domain_pill(r.domain) if r.domain else ""}</div></div>'
             f'{theme.conf_bar(r.confidence_score, r.confidence_bucket)}'
             f'<div class="why"><b>Why:</b> {esc(r.why)}</div>{ev}{caveats}</div>', unsafe_allow_html=True)

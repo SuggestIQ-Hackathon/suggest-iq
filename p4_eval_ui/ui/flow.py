@@ -49,11 +49,11 @@ def _packet(path: str, color: str, t0: float, t1: float, r: int = 6) -> str:
     )
 
 
-def _node(x, y, w, h, stroke, dash=False, opacity=1.0, rx=10, fill_op=0.07, light=True) -> str:
+def _node(x, y, w, h, stroke, dash=False, opacity=1.0, rx=14, fill_op=0.07, light=True) -> str:
     d = ' stroke-dasharray="6 4"' if dash else ""
     fill = f'fill="{T.SURFACE}"' if light else f'fill="currentColor" fill-opacity="{fill_op}"'
     return (f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{rx}" {fill} '
-            f'stroke="{stroke}" stroke-width="2"{d} opacity="{opacity}"/>')
+            f'stroke="{stroke}" stroke-width="1.75"{d} opacity="{opacity}"/>')
 
 
 def _text(x, y, s, size=13, weight=400, anchor="start", opacity=1.0, fill="currentColor") -> str:
@@ -97,7 +97,7 @@ def build_flow_html(trace: Optional[Dict[str, Any]] = None, dark: Optional[bool]
     for k, (title, sub) in enumerate([("1  Intent router", "classify, multi-label"), ("2  Query decomposer", "one sub-query per domain"),
                                       ("3  Async dispatcher", "run agents concurrently")]):
         y = 92 + k * 96
-        parts.append(node(214, y, 182, 76, PURPLE, fill_op=0.08, rx=8))
+        parts.append(node(214, y, 182, 76, PURPLE, fill_op=0.08, rx=12))
         parts += [_text(305, y + 32, title, 13, 600, "middle"), _text(305, y + 52, sub, 11, anchor="middle", opacity=0.7)]
     for k in range(2):  # arrows between manager steps
         y = 92 + k * 96 + 76
