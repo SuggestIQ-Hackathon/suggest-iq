@@ -1,0 +1,34 @@
+# Fly.io deployment. `make deploy` builds with local Docker (so git-ignored resources are included) and pushes.
+app = "suggest-iq"
+primary_region = "sjc"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  LLM_MODE = "mock"
+  REAL_DOMAINS = "all"
+  EMBEDDING_MODE = "hash"
+  PORT = "8501"
+
+[[mounts]]
+  source = "orders"
+  destination = "/app/data/retail"
+
+[http_service]
+  internal_port = 8501
+  force_https = true
+  auto_stop_machines = "off"      # always on: no cold start during the demo
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    method = "GET"
+    path = "/_stcore/health"
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "60s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"
