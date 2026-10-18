@@ -73,6 +73,22 @@ def test_real_sec_agent_answers_generic_cybersecurity_filing_question():
     assert "cybersecurity" in response.findings_summary.lower()
 
 
+def test_real_sec_agent_answers_generic_share_repurchase_question():
+    response = SECAgent().run("Board of Directors authorized how much shares?")
+    assert response.status == "ANALYSIS_COMPLETE"
+    assert response.uncertainty_level == "LOW"
+    assert any(
+        citation.source_doc == "Alphabet_10-K_FY2025.pdf"
+        for citation in response.citations
+    )
+    assert all(
+        citation.source_doc == "Alphabet_10-K_FY2025.pdf"
+        for citation in response.citations
+    )
+    assert "$70.0 billion" in response.findings_summary
+    assert "additional $70.0 billion" in response.findings_summary
+
+
 def test_real_csr_agent_rejects_unrelated_question():
     response = CSRAgent().run("What is the capital of France?")
     assert response.status == "ANALYSIS_COMPLETE"
