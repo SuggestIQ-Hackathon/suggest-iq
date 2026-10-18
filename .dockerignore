@@ -1,0 +1,13 @@
+.git
+.venv
+.pytest_cache
+**/__pycache__
+**/*.pyc
+.env
+.env.*
+!.env.example
+.idea
+.vscode
+.DS_Store
+# rebuilt inside the image from resources/
+data
