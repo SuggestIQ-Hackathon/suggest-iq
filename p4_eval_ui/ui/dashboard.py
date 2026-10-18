@@ -141,6 +141,10 @@ def _new_question() -> None:
     st.session_state["view"] = "home"
 
 
+def _set_app(app: str) -> None:
+    st.session_state["app"] = app
+
+
 def _show(view: str) -> None:
     st.session_state["view"] = view
 
@@ -174,6 +178,9 @@ def render_home(manager) -> None:
         st.markdown(f'<div class="foot">Answers cite their sources. Mode: {esc(llm.llm_mode())} · agents: {esc(os.getenv("REAL_DOMAINS", "auto"))}</div>', unsafe_allow_html=True)
         c = st.columns([2, 3, 2])
         c[1].button("See how we measure quality", key="to_eval", on_click=_show, args=("eval",), type="tertiary", width="stretch")
+        st.markdown('<div class="foot" style="margin-top:.6rem">Also from Suggest IQ</div>', unsafe_allow_html=True)
+        c = st.columns([2, 3, 2])
+        c[1].button("Switch to Retail Checkout (market basket)", key="to_retail", on_click=_set_app, args=("retail",), width="stretch")
 
 
 def render_topbar(show_new: bool = True) -> None:
@@ -436,6 +443,17 @@ def render_evaluation(manager) -> None:
 def main() -> None:
     st.set_page_config(page_title="Suggest IQ", page_icon="💡", layout="wide", initial_sidebar_state="collapsed")
     theme.inject_css()
+    if st.query_params.get("app") == "retail" and "retail_deeplinked" not in st.session_state:  # ?app=retail&cart=SKU1,SKU2 opens the checkout directly
+        st.session_state["retail_deeplinked"] = True
+        st.session_state["app"] = "retail"
+        cart = [c for c in (st.query_params.get("cart") or "").split(",") if c]
+        if cart:
+            st.session_state["retail_cart"] = cart
+    if st.session_state.get("app") == "retail":  # the home-page toggle switches the whole app to the retail checkout
+        from retail_basket import ui as retail_ui
+
+        retail_ui.render()
+        return
     manager = get_manager()
     demo = st.query_params.get("demo")  # ?demo=cisco or ?demo=cisco-diag preloads a run (handy for demos and screenshots)
     if demo and manager is not None and "report" not in st.session_state and "demo_done" not in st.session_state:
