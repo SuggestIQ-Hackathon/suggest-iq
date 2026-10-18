@@ -7,7 +7,7 @@ import re
 from core.interfaces import BaseDomainAgent, Context
 from core.rag_base import Hit, hits_to_citations
 from core.schemas import Citation, DomainResponse, DomainType, RecommendationItem
-from p3_sec_csr.agents.evidence import source_marker, uncertainty_for
+from p3_sec_csr.agents.evidence import evidence_coverage, source_marker, uncertainty_for
 from p3_sec_csr.agents.query_normalization import normalize_query
 from p3_sec_csr.agents.risk_extractor import (
     CATEGORY_QUERIES,
@@ -64,6 +64,13 @@ SEC_ANALYSIS_TERMS = (
     "takeover",
     "acquisition",
     "cybersecurity",
+    "board",
+    "director",
+    "share",
+    "repurchase",
+    "buyback",
+    "dividend",
+    "governance",
 )
 
 SEC_QUERY_VOCABULARY = (
@@ -86,6 +93,26 @@ SEC_QUERY_VOCABULARY = (
     "filing",
     "annual",
 )
+
+GENERIC_QUERY_STOPWORDS = {
+    "about",
+    "annual",
+    "are",
+    "does",
+    "filings",
+    "from",
+    "how",
+    "in",
+    "is",
+    "me",
+    "much",
+    "of",
+    "say",
+    "tell",
+    "the",
+    "what",
+    "with",
+}
 
 
 def _unique_citations(citations: list[Citation]) -> list[Citation]:
@@ -134,6 +161,75 @@ def _metric_evidence(hits: list[Hit], phrase: str) -> tuple[str, Hit] | None:
         candidates, key=lambda row: (row[0], row[1], row[2], row[3], row[4])
     )
     return _truncate(selected[4]), selected[5]
+
+
+def _best_generic_excerpt(text: str, query: str, limit: int = 380) -> str:
+    """Select the sentence in a retrieved passage that best answers a generic query."""
+    terms = {
+        token
+        for token in re.findall(r"[a-z0-9]+", query.lower())
+        if len(token) > 2 and token not in GENERIC_QUERY_STOPWORDS
+    }
+    sentences = [
+        re.sub(r"\s+", " ", sentence).strip()
+        for sentence in re.split(r"(?<=[.!?])\s+", text)
+        if len(sentence.strip()) >= 35
+    ]
+    if not sentences:
+        return _truncate(text, limit)
+    scored = [
+        (
+            len(terms & set(re.findall(r"[a-z0-9]+", sentence.lower()))),
+            len(re.findall(r"[$%0-9]", sentence)),
+            -index,
+            sentence,
+        )
+        for index, sentence in enumerate(sentences)
+    ]
+    best_index = max(range(len(scored)), key=lambda index: scored[index][:3])
+    best_score, _, _, selected = scored[best_index]
+    if best_index + 1 < len(scored):
+        next_score, _, _, next_sentence = scored[best_index + 1]
+        if next_score >= max(1, best_score - 1):
+            selected = f"{selected} {next_sentence}"
+    return _truncate(selected, limit)
+
+
+def _rerank_generic_hits(query: str, hits: list[Hit]) -> list[Hit]:
+    """Keep generic answers focused on the filing passages that best match the query."""
+    terms = {
+        token
+        for token in re.findall(r"[a-z0-9]+", query.lower())
+        if len(token) > 2 and token not in GENERIC_QUERY_STOPWORDS
+    }
+    if not terms:
+        return hits
+    scored = []
+    for hit in hits:
+        tokens = re.findall(r"[a-z0-9]+", hit.chunk.text.lower())
+        matched_terms = {token for token in tokens if token in terms}
+        if not matched_terms:
+            continue
+        minimum_span = len(tokens)
+        counts: dict[str, int] = {}
+        left = 0
+        for right, token in enumerate(tokens):
+            if token not in terms:
+                continue
+            counts[token] = counts.get(token, 0) + 1
+            while len(counts) == len(terms):
+                minimum_span = min(minimum_span, right - left + 1)
+                left_token = tokens[left]
+                if left_token in counts:
+                    counts[left_token] -= 1
+                    if counts[left_token] == 0:
+                        del counts[left_token]
+                left += 1
+        scored.append((len(matched_terms), minimum_span, hit.score, hit))
+    if not scored:
+        return []
+    best = max(scored, key=lambda row: (row[0], -row[1], row[2]))
+    return [best[3]]
 
 
 class SECAgent(BaseDomainAgent):
@@ -204,7 +300,9 @@ class SECAgent(BaseDomainAgent):
                 f"{query} anti-takeover provisions business combination "
                 "voting stock acquisition"
             )
-        hits = self.kb.search(retrieval_query, k=3)
+        hits = _rerank_generic_hits(
+            retrieval_query, self.kb.search(retrieval_query, k=5)
+        )[:3]
         if not hits:
             return DomainResponse(
                 domain=self.domain,
@@ -223,7 +321,7 @@ class SECAgent(BaseDomainAgent):
             year = metadata.get("fiscal_year")
             year_label = f" FY{year}" if year else ""
             summaries.append(
-                f"{company}{year_label}: {_truncate(hit.chunk.text)} "
+                f"{company}{year_label}: {_best_generic_excerpt(hit.chunk.text, retrieval_query)} "
                 f"{source_marker(hit)}"
             )
         return DomainResponse(
@@ -231,10 +329,14 @@ class SECAgent(BaseDomainAgent):
             status="ANALYSIS_COMPLETE",
             findings_summary=(
                 " ".join(summaries)
-                + " This is a disclosure from the cited filing, not general legal advice."
+                + " This summary is limited to the cited filing disclosures."
             ),
             citations=hits_to_citations(hits),
-            uncertainty_level=uncertainty_for(query, hits),
+            uncertainty_level=(
+                "LOW"
+                if evidence_coverage(query, hits) >= 0.5
+                else uncertainty_for(query, hits)
+            ),
         )
 
     def retrieve(self, query: str, k: int = 5) -> list[Hit]:

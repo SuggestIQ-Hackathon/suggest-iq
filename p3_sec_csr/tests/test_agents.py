@@ -141,7 +141,7 @@ def test_sec_agent_searches_all_filings_for_supported_topic_without_company():
     assert response.status == "ANALYSIS_COMPLETE"
     assert response.uncertainty_level != "HIGH"
     assert response.citations[0].source_doc == "Alphabet_10-K_FY2025.pdf"
-    assert "not general legal advice" in response.findings_summary
+    assert "limited to the cited filing disclosures" in response.findings_summary
     assert not response.recommendations
 
 
