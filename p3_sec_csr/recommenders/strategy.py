@@ -14,6 +14,7 @@ REGULATORY_WEIGHT = 0.30
 FEASIBILITY_WEIGHT = 0.30
 STRUCTURED_BLEND = 0.80
 SIMILARITY_BLEND = 0.20
+TECHNOLOGY_INVESTMENT_TAG = "technology_investment"
 
 
 def _normalise_rating(value: float) -> float:
@@ -25,7 +26,10 @@ def _load_catalog(catalog: list[dict] | None) -> list[dict]:
 
 
 def recommend(
-    context_text: str, catalog: list[dict] | None = None, top_k: int = 3
+    context_text: str,
+    catalog: list[dict] | None = None,
+    top_k: int = 3,
+    required_tag: str | None = None,
 ) -> list[RecommendationItem]:
     """Rank actions using 80% structured score and 20% semantic relevance.
 
@@ -34,6 +38,10 @@ def recommend(
     zero so unrelated text cannot produce a negative confidence score.
     """
     actions = _load_catalog(catalog)
+    if required_tag:
+        actions = [
+            action for action in actions if required_tag in action.get("intent_tags", [])
+        ]
     if not actions or top_k <= 0:
         return []
     action_texts = [

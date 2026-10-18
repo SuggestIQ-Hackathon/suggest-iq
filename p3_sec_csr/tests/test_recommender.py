@@ -1,6 +1,10 @@
 import json
 
-from p3_sec_csr.recommenders.strategy import CATALOG_PATH, recommend
+from p3_sec_csr.recommenders.strategy import (
+    CATALOG_PATH,
+    TECHNOLOGY_INVESTMENT_TAG,
+    recommend,
+)
 
 
 def test_catalog_has_stable_unique_actions():
@@ -56,3 +60,41 @@ def test_custom_catalog_obeys_structured_weights():
     assert (
         recommend("same context", catalog=catalog, top_k=2)[0].item_id == "STRAT-HIGH"
     )
+
+
+def test_required_tag_filters_catalog_before_ranking():
+    catalog = [
+        {
+            "item_id": "STRAT-TECH",
+            "title": "Technology action",
+            "category": "Capital Allocation",
+            "description": "technology investment",
+            "impact": 3,
+            "regulatory_risk": 3,
+            "feasibility": 3,
+            "evidence_keywords": [],
+            "source_hint": "test",
+            "intent_tags": [TECHNOLOGY_INVESTMENT_TAG],
+            "assumptions": ["Test assumption."],
+        },
+        {
+            "item_id": "STRAT-GOVERNANCE",
+            "title": "Governance action",
+            "category": "Risk Mitigation",
+            "description": "governance process",
+            "impact": 5,
+            "regulatory_risk": 1,
+            "feasibility": 5,
+            "evidence_keywords": [],
+            "source_hint": "test",
+            "intent_tags": [],
+            "assumptions": ["Test assumption."],
+        },
+    ]
+    recommendations = recommend(
+        "technology investment",
+        catalog=catalog,
+        top_k=2,
+        required_tag=TECHNOLOGY_INVESTMENT_TAG,
+    )
+    assert [item.item_id for item in recommendations] == ["STRAT-TECH"]
