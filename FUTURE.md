@@ -1,4 +1,6 @@
-# Future scope (DO NOT BUILD NOW)
+# Retail market-basket recommender (now built: see `retail_basket/README.md`)
+
+> Status: implemented on the `feature/retail-basket` branch (model, evaluation, REST API, checkout page, home-page toggle). The text below is the original scope note.
 
 **Retail market-basket recommender for online checkout** (second task in `resources/SJSU_CMPE256_Hackathon_20261017_v7_Release.pdf`, data in `resources/Retail.zip`).
 
