@@ -1,6 +1,6 @@
 from p4_eval_ui.ui import theme
 from p4_eval_ui.ui import tokens as T
-from p4_eval_ui.ui.dashboard import BOILERPLATE, SUMMARY_PREFIX, answer_status, is_blocked, split_rationale, strip_boilerplate, trim_summary
+from p4_eval_ui.ui.dashboard import BOILERPLATE, is_unrouted, SUMMARY_PREFIX, answer_status, is_blocked, split_rationale, strip_boilerplate, trim_summary
 from p4_eval_ui.ui.flow import build_flow_html
 
 
@@ -61,3 +61,17 @@ def test_is_blocked_only_when_every_agent_needs_more_information():
 def test_strip_boilerplate_removes_the_canned_closing_sentence():
     assert strip_boilerplate("In the technology domain: Hypothesis: x. " + BOILERPLATE) == "In the technology domain: Hypothesis: x."
     assert strip_boilerplate("Plain summary.") == "Plain summary."
+
+
+def test_status_for_no_analyses_is_not_complete():
+    assert answer_status([])[0] == "No match"
+
+
+def test_is_unrouted_reads_detected_domains():
+    class R:
+        detected_domains = []
+
+    r = R()
+    assert is_unrouted(r)
+    r.detected_domains = ["technology"]
+    assert not is_unrouted(r)

@@ -222,6 +222,8 @@ def strip_boilerplate(summary: str) -> str:
 def answer_status(statuses):
     """Headline status for the answer tile, from the domain statuses. A hypothesis is never shown as 'Complete'."""
     n = len(statuses)
+    if n == 0:
+        return "No match", "no specialist could take this question", T.MUTED
     if any(s == "INFORMATION_REQUEST" for s in statuses):
         return "Provisional", f"{sum(s == 'INFORMATION_REQUEST' for s in statuses)} of {n} needs more information", T.WARNING
     if any(s == "CONFIRMED_FAULT" for s in statuses):
@@ -238,8 +240,41 @@ def split_rationale(why: str):
     return why, None
 
 
+def is_unrouted(report) -> bool:
+    """The router matched no specialist, so nothing ran and there is nothing honest to show except how to rephrase."""
+    return not report.detected_domains
+
+
+def _rephrase(query_key: str = "rephrase_text") -> None:
+    text = (st.session_state.get(query_key) or "").strip()
+    if text:
+        _queue(text, "")
+
+
+def render_unrouted(manager, report) -> None:
+    st.markdown(f'<div class="strip">{theme.pill("No specialist matched this question", T.MUTED)}</div>', unsafe_allow_html=True)
+    st.markdown('<div class="need"><h4>We couldn\'t tell what you want to decide</h4>'
+                '<div class="meta">Suggest IQ answers questions in four areas, and nothing in your message pointed to any of them.</div>'
+                '<ul><li><b>Network hardware and diagnostics:</b> Cisco and Google equipment, failures, replacement parts</li>'
+                '<li><b>Lab instruments and clinical evidence:</b> Agilent instruments, clinical trials and papers</li>'
+                '<li><b>Company filings and risk:</b> Cisco, Agilent and Alphabet annual reports</li>'
+                '<li><b>Food security and sustainability:</b> FAO State of Food Security reports</li></ul></div>', unsafe_allow_html=True)
+    st.text_area("Rephrase your question", value=report.query, key="rephrase_text", height=90,
+                 placeholder="Name a product, a company or a problem, e.g. which parts should we order for our failing Cisco router?")
+    st.button("Ask again", key="rephrase_go", type="primary", icon=":material/refresh:", on_click=_rephrase, disabled=manager is None)
+    st.markdown('<div class="eyebrow">Or try an example</div><div class="chiprow">', unsafe_allow_html=True)
+    examples = _examples()[:3]
+    cols = st.columns(3)
+    for col, (label, text, diag) in zip(cols, examples):
+        col.button(label, key=f"un_{label}", icon=CHIP_ICONS.get(label), on_click=_queue, args=(text, diag), width="stretch")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
 def render_answer(manager, report) -> None:
     """Reading order: the answer first (summary, recommendations, next steps, KPIs), supporting detail after (how it was routed)."""
+    if is_unrouted(report):
+        render_unrouted(manager, report)
+        return
     view = explain(report)
     info_req = any(r.status == "INFORMATION_REQUEST" for r in report.domain_findings.values())
     statuses = [r.status for r in report.domain_findings.values()]
@@ -299,7 +334,7 @@ def render_answer(manager, report) -> None:
     for i, step in enumerate(report.next_steps, 1):
         st.markdown(f'<div class="step"><div class="n">{i}</div><div>{esc(step)}</div></div>', unsafe_allow_html=True)
     st.subheader("How impact will be measured")
-    st.markdown("".join(f'<span class="kpi">{esc(k)}</span>' for k in report.measuring_impact_kpis), unsafe_allow_html=True)
+    st.markdown("".join(f'<span class="kpi">{esc(k)}</span>' for k in dict.fromkeys(report.measuring_impact_kpis)), unsafe_allow_html=True)  # de-duplicated
     if view.what_would_change_this_answer:
         with st.expander("What would change this answer"):
             for w in view.what_would_change_this_answer:
