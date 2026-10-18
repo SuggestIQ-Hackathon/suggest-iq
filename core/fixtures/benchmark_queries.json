@@ -13,7 +13,8 @@
       "diagnostics",
       "show tech-support",
       "hypothesis"
-    ]
+    ],
+    "expected_status": "INFORMATION_REQUEST"
   },
   {
     "id": "Q02",
@@ -24,7 +25,8 @@
     "type": "single",
     "expected_sources": [
       "ASR",
-      "1000"
+      "1000",
+      "731632"
     ],
     "expected_keywords": [
       "redundancy",
@@ -39,7 +41,8 @@
     ],
     "type": "single",
     "expected_sources": [
-      "8300"
+      "8300",
+      "744088"
     ],
     "expected_keywords": [
       "IPsec",
@@ -71,7 +74,8 @@
     "type": "single",
     "expected_sources": [
       "4000",
-      "ISR"
+      "ISR",
+      "732542"
     ],
     "expected_keywords": [
       "module",
@@ -320,7 +324,8 @@
     "expected_keywords": [
       "replacement",
       "risk"
-    ]
+    ],
+    "expected_status": "INFORMATION_REQUEST"
   },
   {
     "id": "Q22",
@@ -395,5 +400,207 @@
       "risk",
       "ESG"
     ]
+  },
+  {
+    "id": "Q26",
+    "query": "Our WAN edge keeps flapping. What is likely wrong and which module is probably to blame?",
+    "expected_domains": [
+      "technology"
+    ],
+    "type": "single",
+    "expected_sources": [
+      "Cisco",
+      "Catalyst",
+      "ISR",
+      "ASR"
+    ],
+    "expected_keywords": [
+      "hypothesis",
+      "diagnostics"
+    ]
+  },
+  {
+    "id": "Q27",
+    "query": "Does Cisco's 10-K mention tariffs or export controls as a risk?",
+    "expected_domains": [
+      "sec"
+    ],
+    "type": "single",
+    "expected_sources": [
+      "Cisco"
+    ],
+    "expected_keywords": [
+      "tariff",
+      "export",
+      "risk"
+    ]
+  },
+  {
+    "id": "Q28",
+    "query": "Is whole-slide imaging worth the capital expense for a mid-size pathology lab?",
+    "expected_domains": [
+      "clinical"
+    ],
+    "type": "single",
+    "expected_sources": [
+      "NanoZoomer",
+      "Digital",
+      "Pathology"
+    ],
+    "expected_keywords": [
+      "whole-slide",
+      "pathology"
+    ]
+  },
+  {
+    "id": "Q29",
+    "query": "How many people were undernourished globally according to the FAO report?",
+    "expected_domains": [
+      "corporate_responsibility"
+    ],
+    "type": "single",
+    "expected_sources": [
+      "SOFI"
+    ],
+    "expected_keywords": [
+      "undernourishment",
+      "million"
+    ]
+  },
+  {
+    "id": "Q30",
+    "query": "What do the SEC filings say about Alphabet's cloud competition?",
+    "expected_domains": [
+      "sec"
+    ],
+    "type": "single",
+    "expected_sources": [
+      "Alphabet"
+    ],
+    "expected_keywords": [
+      "cloud",
+      "competition"
+    ]
+  },
+  {
+    "id": "Q31",
+    "query": "Which Agilent instrument should we use to study mitochondrial respiration in cells?",
+    "expected_domains": [
+      "clinical"
+    ],
+    "type": "single",
+    "expected_sources": [
+      "Seahorse"
+    ],
+    "expected_keywords": [
+      "Seahorse",
+      "metabolic"
+    ]
+  },
+  {
+    "id": "Q32",
+    "query": "Can Google Cloud managed services reduce our router maintenance burden, and what cloud risks does Alphabet disclose?",
+    "expected_domains": [
+      "technology",
+      "sec"
+    ],
+    "type": "cross",
+    "expected_sources": [
+      "Alphabet",
+      "Google"
+    ],
+    "expected_keywords": [
+      "cloud",
+      "risk"
+    ]
+  },
+  {
+    "id": "Q33",
+    "query": "How could sensor networks reduce food waste, and which Cisco hardware would support them?",
+    "expected_domains": [
+      "corporate_responsibility",
+      "technology"
+    ],
+    "type": "cross",
+    "expected_sources": [
+      "SOFI",
+      "Cisco"
+    ],
+    "expected_keywords": [
+      "food",
+      "network"
+    ]
+  },
+  {
+    "id": "Q34",
+    "query": "Weigh Agilent's revenue concentration risk against adopting its Artisan stainers in our histology lab.",
+    "expected_domains": [
+      "clinical",
+      "sec"
+    ],
+    "type": "cross",
+    "expected_sources": [
+      "Agilent",
+      "Artisan"
+    ],
+    "expected_keywords": [
+      "risk",
+      "special stains"
+    ]
+  },
+  {
+    "id": "Q35",
+    "query": "Our Cisco Catalyst 8200 router drops WAN links intermittently. Which replacement parts should we order?",
+    "expected_domains": [
+      "technology"
+    ],
+    "type": "single",
+    "expected_sources": [
+      "8200"
+    ],
+    "expected_keywords": [
+      "power supply",
+      "replacement"
+    ],
+    "context": {
+      "diagnostics": "show tech-support output attached: no crash files found.\nshow logging: repeated power-supply 1 fault messages and WAN link flaps.\nshow interfaces GigabitEthernet0/0/1 counters: input errors 0, CRC errors 0.\nshow environment: power supply 1 reports FAILED, power supply 2 OK; temperature and fan status normal.\nshow platform hardware status: all modules ok except power supply 1.\nsoftware version: IOS XE 17.9, uptime 12 days.\nOptic DOM readings on the WAN fibre uplink are within the normal range."
+    }
+  },
+  {
+    "id": "Q36",
+    "query": "Our Cisco Catalyst 8300 shows CRC errors and flapping on a fibre uplink. Which parts should we order?",
+    "expected_domains": [
+      "technology"
+    ],
+    "type": "single",
+    "expected_sources": [
+      "8300"
+    ],
+    "expected_keywords": [
+      "optic",
+      "SFP",
+      "interface"
+    ],
+    "context": {
+      "diagnostics": "show tech-support output attached: no crash files found.\nshow logging: TenGigabitEthernet0/0/1 link flaps and increasing CRC errors.\nshow interfaces TenGigabitEthernet0/0/1 counters: CRC errors increasing, 120 input errors per minute.\nshow environment: power, temperature and fan status normal.\nshow platform hardware status: all modules ok.\nsoftware version: IOS XE 17.12.\nOptic DOM readings: receive power below the low-alarm threshold on the SFP."
+    }
+  },
+  {
+    "id": "Q37",
+    "query": "Our Agilent Seahorse analyzer gives unstable readings after switching to a new assay cartridge lot. Which component should we replace?",
+    "expected_domains": [
+      "clinical"
+    ],
+    "type": "single",
+    "expected_sources": [
+      "Seahorse"
+    ],
+    "expected_keywords": [
+      "cartridge",
+      "consumables"
+    ],
+    "context": {
+      "diagnostics": "Instrument error codes: sensor calibration warnings only on runs using the new cartridge lot.\nLast calibration and maintenance date: 3 days ago.\nConsumable lot age: the new cartridge lot arrived 2 weeks ago; the previous lot ran clean.\nFirmware version: current."
+    }
   }
 ]
