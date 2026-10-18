@@ -49,6 +49,10 @@ CSR_SCOPE_TERMS = (
     "esg",
     "corporate responsibility",
     "csr",
+    "sources of financing",
+    "financing to end hunger",
+    "synergies",
+    "alignment",
 )
 
 # The SOFI reports are not a source for general-world facts. These explicit

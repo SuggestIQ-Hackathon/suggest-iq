@@ -53,6 +53,7 @@ _CSR_PATTERNS = [
     r"\b(?:corporate\s*responsibility)\b",
     r"\b(?:agrifood|agriculture|agricultural|healthy\s*diets?|dietary\s*affordability)\b",
     r"\b(?:rising\s*food\s*prices?|carbon\s*footprint|greenhouse\s*gas)\b",
+    r"(?:sources?\s*of\s*financing|financing\s*to\s*end\s*hunger|financing\s*gap|financing\s*flows?|climate\s*finances?|development\s*finances?|blended\s*finance)",
 ]
 
 
