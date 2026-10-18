@@ -10,9 +10,9 @@ from core import llm
 from core.schemas import DomainType, RoutingDecision
 
 _TECH_HARDWARE_PATTERNS = [
-    r"\b(?:catalyst|asr|isr|8200|8000v|4000\s*series)\b",
-    r"\b(?:router|routers|switch|switches|wan\s*interface|sfp|optics|firmware|ios-xe)\b",
-    r"\b(?:packet\s*loss|connectivity\s*failures?|outage|throughput|ipsec)\b",
+    r"\b(?:catalyst|asr|isr|8200|8300|8000v|4000\s*series|9300)\b",
+    r"\b(?:router|routers|switch|switches|wan\s*interface|line[- ]card|carrier\s*card|transceiver|sfp\+?|qsfp|optics|firmware|ios-xe)\b",
+    r"\b(?:packet\s*(?:loss|drop)|connectivity\s*failures?|outage|throughput|ipsec|crc\s*errors?|link\s*flaps?)\b",
     r"\b(?:replacement\s*(?:parts?|components?)|failing\s*intermittently)\b",
     r"\b(?:google\s*cloud|gcp)\b",
 ]
@@ -40,16 +40,18 @@ _SEC_PATTERNS = [
     r"\b(?:financial(?:ly)?\s*(?:stable|risks?|performance)?)\b",
     r"\b(?:revenue|gross\s*margin|ebitda|operating\s*income|fiscal\s*year)\b",
     r"\b(?:regulatory\s*and\s*compliance|compliance\s*exposures?)\b",
-    r"\b(?:supply[- ]chain\s*risks?|supplier\s*stability|operational\s*risks?)\b",
-    r"\b(?:risk\s*factors?|competitive\s*risks?)\b",
+    r"\b(?:supply[- ]chain\s*risks?|supplier\s*stability|operational\s*risks?|cloud\s*risks?)\b",
+    r"\b(?:risk\s*factors?|competitive\s*risks?|disclose[s]?|disclosures?)\b",
+    r"\b(?:delaware\s*law|anti[- ]takeover|takeover|share\s*repurchase|buyback|dividend|governance)\b",
     r"\b(?:long-term\s*supplier)\b",
 ]
 
 _CSR_PATTERNS = [
-    r"\b(?:food\s*insecurity|food\s*security|malnutrition|hunger|famine)\b",
-    r"\b(?:state\s*of\s*food\s*security|sofi|nutrition\s*in\s*the\s*world)\b",
+    r"\b(?:food\s*insecurity|food\s*security|food\s*waste|undernourished|undernourishment|hunger|famine)\b",
+    r"\b(?:state\s*of\s*food\s*security|sofi|nutrition\s*in\s*the\s*world|fao)\b",
     r"\b(?:sustainability|sustainable|esg|csr)\b",
     r"\b(?:corporate\s*responsibility)\b",
+    r"\b(?:agrifood|agriculture|agricultural|healthy\s*diets?|dietary\s*affordability)\b",
     r"\b(?:rising\s*food\s*prices?|carbon\s*footprint|greenhouse\s*gas)\b",
 ]
 
@@ -81,7 +83,7 @@ def classify_rules(query: str) -> RoutingDecision:
     # If SEC signals are strong (10-K, annual report, revenue, financial risk, etc.)
     # and there are NO hardware/instrument words, company names (Cisco/Agilent/Alphabet) are SEC targets, not Tech/Clinical.
     has_strong_sec = sec_count > 0 and (
-        re.search(r"\b(?:10-k|annual\s*report|revenue|gross\s*margin|sec\s*filing|filings|financial(?:ly)?|fiscal\s*year|regulatory|risk\s*factors?)\b", lower_q)
+        re.search(r"\b(?:10-k|annual\s*report|revenue|gross\s*margin|sec\s*filing|filings|financial(?:ly)?|fiscal\s*year|regulatory|risk\s*factors?|delaware|anti[- ]takeover|governance|buyback|dividend)\b", lower_q)
     )
 
     # Compute domain presence
