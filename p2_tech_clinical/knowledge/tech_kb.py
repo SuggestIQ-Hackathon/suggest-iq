@@ -8,6 +8,11 @@ from typing import Iterable
 
 from core.rag_base import Hit, VectorIndex, chunk_text
 
+try:
+    from bs4 import BeautifulSoup
+except ImportError:  # pragma: no cover - the P2 requirements include beautifulsoup4
+    BeautifulSoup = None
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MODEL_NAMES = ("Catalyst 8300", "Catalyst 8200", "Catalyst 8000V", "ISR 4000", "ASR 1000")
@@ -33,6 +38,22 @@ def _model_for(name: str) -> str | None:
 
 def _text_chunks(path: Path, vendor: str, model: str | None, doc_type: str) -> list:
     text = path.read_text(encoding="utf-8", errors="replace")
+    if path.suffix.lower() in {".html", ".htm"} and BeautifulSoup is not None:
+        soup = BeautifulSoup(text, "html.parser")
+        for element in soup.find_all(["script", "style", "noscript", "template", "svg", "iframe", "canvas"]):
+            element.decompose()
+        for element in list(soup.find_all(True)):
+            attrs = element.attrs or {}
+            labels = " ".join(
+                [str(attrs.get("id", "")), " ".join(str(value) for value in attrs.get("class", []))]
+            ).lower()
+            style = str(attrs.get("style", "")).lower().replace(" ", "")
+            if any(marker in labels for marker in ("cookie", "consent", "onetrust", "privacy", "tracking", "analytics")):
+                element.decompose()
+            elif "display:none" in style or "visibility:hidden" in style:
+                element.decompose()
+        text = soup.get_text(" ", strip=True)
+    text = re.sub(r"\s+", " ", text).strip()
     return chunk_text(text, path.name, extra_meta={"vendor": vendor, "model": model, "doc_type": doc_type})
 
 

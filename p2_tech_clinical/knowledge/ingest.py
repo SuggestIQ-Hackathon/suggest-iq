@@ -87,9 +87,9 @@ def _write_manifest(raw_root: Path, manifest: dict[str, Any]) -> None:
     _manifest_path(raw_root).write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
 
 
-def _urls_from_file(path: Path) -> list[tuple[str, str]]:
+def _urls_from_file(path: Path) -> list[str]:
     text = path.read_text(encoding="utf-8", errors="replace")
-    return [(line.strip(), line.strip()) for line in re.findall(r"https?://[^\s]+", text)]
+    return [line.strip() for line in re.findall(r"https?://[^\s]+", text)]
 
 
 def _download(url: str, destination: Path) -> tuple[str, str | None]:

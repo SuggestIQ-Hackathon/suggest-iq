@@ -5,7 +5,7 @@ import importlib
 from pathlib import Path
 
 from p2_tech_clinical.knowledge.clinical_kb import ClinicalKB
-from p2_tech_clinical.knowledge.tech_kb import TechKB
+from p2_tech_clinical.knowledge.tech_kb import TechKB, _text_chunks
 
 
 ingest_module = importlib.import_module("p2_tech_clinical.knowledge.ingest")
@@ -28,6 +28,32 @@ def test_tech_kb_preserves_metadata_and_filters(tmp_path: Path):
     assert hits[0].chunk.metadata["vendor"] == "Cisco"
     assert hits[0].chunk.metadata["model"] == "Catalyst 8200"
     assert all(hit.chunk.metadata["model"] == "Catalyst 8200" for hit in hits)
+
+
+def test_tech_kb_cleans_html_before_chunking(tmp_path: Path):
+    html = tmp_path / "catalyst-8300.html"
+    html.write_text(
+        """
+        <html><head><script>tracking_secret()</script></head>
+        <body><div class='cookie-banner'>cookie notice</div>
+        <main><h1>Catalyst 8300</h1><p>Supports secure WAN interfaces.</p></main>
+        </body></html>
+        """,
+        encoding="utf-8",
+    )
+
+    chunks = _text_chunks(html, "Cisco", "Catalyst 8300", "product_page")
+    combined = " ".join(chunk.text for chunk in chunks)
+    assert "Catalyst 8300" in combined
+    assert "secure WAN interfaces" in combined
+    assert "tracking_secret" not in combined
+    assert "cookie notice" not in combined
+    assert chunks[0].metadata == {
+        "source_doc": "catalyst-8300.html",
+        "vendor": "Cisco",
+        "model": "Catalyst 8300",
+        "doc_type": "product_page",
+    }
 
 
 def test_clinical_kb_filters_trial_source_type(tmp_path: Path):
