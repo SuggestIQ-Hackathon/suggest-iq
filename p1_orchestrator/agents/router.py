@@ -27,6 +27,8 @@ _CLINICAL_INSTRUMENT_PATTERNS = [
     r"\b(?:clinical\s*(?:trial|trials|literature|data)?)\b",
     r"\b(?:metabolic\s*analysis|live\s*cells|diagnostic\s*(?:instrument|instruments|lab|equipment))\b",
     r"\b(?:heart\s*attacks?|type\s*2\s*diabetes|patient|cardiac)\b",
+    r"\b(?:covid(?:-19)?|coronavirus|sars-cov-2|lung(?:-image)?|pulmonary|respiratory|radiograph|x-ray|chest)\b",
+    r"\b(?:knee\s*(?:injuries?|injury)?|orthopedic)\b",
 ]
 
 _CLINICAL_COMPANY_PATTERNS = [
