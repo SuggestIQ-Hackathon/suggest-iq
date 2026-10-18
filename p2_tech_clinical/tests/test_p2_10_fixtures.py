@@ -12,7 +12,7 @@ from core.rag_base import Chunk, Hit
 from p2_tech_clinical.agents.clinical_agent import ClinicalAgent
 from p2_tech_clinical.agents.tech_agent import TechAgent
 from p2_tech_clinical.knowledge.clinical_kb import ClinicalKB
-from p2_tech_clinical.knowledge.tech_kb import TechKB
+from p2_tech_clinical.knowledge.tech_kb import TechKB, _model_for
 from p2_tech_clinical.recommenders.hardware import recommend
 
 
@@ -217,3 +217,79 @@ def test_p210_empty_and_malformed_inputs_are_safe():
     assert clinical.run(None).status == "INFORMATION_REQUEST"
     assert clinical.retrieve(None) == []
     assert recommend("fixture problem", [{"item_id": "malformed"}]) == []
+
+
+def test_p209_s540md_is_product_matching_not_troubleshooting():
+    agent = ClinicalAgent()
+    agent.kb = FakeKB([_hit(
+        "Agilent S540MD Slide Scanner System provides fast whole-slide imaging for pathology workflows.",
+        "agilent-digital-pathology-scanners.html",
+        doc_type="product_page",
+        model="S540MD",
+    )])
+    response = agent.run("Agilent S540MD Slide Scanner System")
+    assert response.status == "ANALYSIS_COMPLETE"
+    assert "S540MD" in response.findings_summary
+    assert response.recommendations[0].item_id == "AGILENT-S540MD-SLIDE-SCANNER"
+
+
+def test_p209_academic_medical_query_enters_literature_mode():
+    agent = ClinicalAgent()
+    agent.kb = FakeKB([_hit(
+        "Roy et al. proposed a Bilateral-Branch Network (BBN) framework for predicting a dengue fever outbreak.",
+        "Fog-Driven_Heart_Attack_Prediction_from_Wearable_Edge_Devices.pdf",
+        doc_type="paper",
+        page=2,
+    )])
+    response = agent.run("What is the Bilateral-Branch Network (BBN) framework for prediction of a dengue fever outbreak?")
+    assert response.status == "ANALYSIS_COMPLETE"
+    assert "BBN" in response.findings_summary
+    assert response.citations[0].source_doc.startswith("Fog-Driven_")
+    assert "Informational only; not medical advice." in response.findings_summary
+
+
+def test_p203_maps_downloaded_cisco_datasheet_filenames_to_models():
+    assert _model_for("datasheet-c78-744088.pdf") == "Catalyst 8300"
+    assert _model_for("data_sheet-c78-732542.pdf") == "ISR 4000"
+    assert _model_for("datasheet-c78-731632.pdf") == "ASR 1000"
+
+
+def test_p208_unsupported_technology_model_abstains_instead_of_using_nearby_evidence():
+    agent = TechAgent()
+    agent.kb = FakeKB([_hit(
+        "Catalyst 8300 interface evidence supports secure WAN connectivity.",
+        "fixture-catalyst-8300.pdf",
+        model="Catalyst 8300",
+        page=1,
+    )])
+    response = agent.run("What IPsec throughput does the Cisco Catalyst 9999 provide?")
+    assert response.status == "INFORMATION_REQUEST"
+    assert response.uncertainty_level == "HIGH"
+    assert response.citations == []
+
+
+def test_p208_clinical_literature_query_fails_closed_when_sent_to_technology():
+    agent = TechAgent()
+    agent.kb = FakeKB([_hit(
+        "Cisco datasheet mentions detection and network methods.",
+        "unrelated-cisco.pdf",
+        model="Catalyst 8300",
+    )])
+    response = agent.run("What wearable or IoT-based methods are described for heart-attack detection?")
+    assert response.status == "INFORMATION_REQUEST"
+    assert response.uncertainty_level == "HIGH"
+    assert response.citations == []
+
+
+def test_p209_wrong_instrument_model_abstains_instead_of_using_nearby_evidence():
+    agent = ClinicalAgent()
+    agent.kb = FakeKB([_hit(
+        "Agilent S540MD Slide Scanner System provides whole-slide imaging.",
+        "agilent-digital-pathology-scanners.html",
+        doc_type="product_page",
+        model="S540MD",
+    )])
+    response = agent.run("What are the specifications of the Agilent S999MD Slide Scanner System?")
+    assert response.status == "INFORMATION_REQUEST"
+    assert response.uncertainty_level == "HIGH"
+    assert response.citations == []

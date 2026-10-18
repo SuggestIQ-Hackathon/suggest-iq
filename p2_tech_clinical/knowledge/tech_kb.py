@@ -20,6 +20,13 @@ MODEL_NAMES = ("Catalyst 8300", "Catalyst 8200", "Catalyst 8000V", "ISR 4000", "
 
 def _model_for(name: str) -> str | None:
     lowered = name.lower()
+    filename_models = {
+        "datasheet-c78-744088.pdf": "Catalyst 8300",
+        "data_sheet-c78-732542.pdf": "ISR 4000",
+        "datasheet-c78-731632.pdf": "ASR 1000",
+    }
+    if lowered in filename_models:
+        return filename_models[lowered]
     for model in MODEL_NAMES:
         if model.lower().replace(" ", "") in lowered.replace(" ", ""):
             return model
@@ -127,4 +134,10 @@ class TechKB:
             where["vendor"] = vendor
         if model:
             where["model"] = model
-        return self._load().query(query or "", k=k, where=where or None)
+        hits = self._load().query(query or "", k=k, where=where or None)
+        # Older/generated indexes may lack model metadata for a downloaded
+        # datasheet. Keep the query useful while the index is rebuilt.
+        if model and not hits:
+            fallback_where = {"vendor": vendor} if vendor else None
+            hits = self._load().query(query or "", k=k, where=fallback_where)
+        return hits

@@ -88,3 +88,43 @@ def test_ingest_records_missing_sources_without_fabrication(tmp_path: Path, monk
     assert not list((tmp_path / "raw").rglob("*.pdf"))
     saved = json.loads((tmp_path / "raw" / "MANIFEST.json").read_text())
     assert saved["sources"] == manifest["sources"]
+
+
+def test_ingest_saved_pages_cleans_and_files_by_section(tmp_path: Path):
+    saved_dir = tmp_path / "URLs" / "crawled"
+    saved_dir.mkdir(parents=True)
+    url = "https://www.agilent.com/en/product/cell-analysis/real-time-cell-metabolic-analysis/xf-analyzers/seahorse-xf-pro-analyzer-1980223"
+    (saved_dir / "Seahorse XF Pro _ Agilent.html").write_text(
+        f"<!-- saved from url=({len(url):04d}){url} -->\n"
+        "<html><head><title>Seahorse XF Pro | Agilent</title></head><body>"
+        "<header><nav>Products Applications Sign In</nav></header>"
+        "<div id='content'><header><h1>Seahorse XF Pro Analyzer</h1></header>"
+        "<p>Measure mitochondrial respiration and glycolysis in a 96-well format with Seahorse XF Pro.</p>"
+        + "<p>Detail paragraph about OCR and ECAR measurement.</p>" * 10
+        + "<div class='onetrust-banner'>cookie consent text</div></div>"
+        "<!-- assets /cs/library/usermanuals/public/xf-pro-user-guide.pdf --></body></html>",
+        encoding="utf-8",
+    )
+    blocked_url = "https://www.agilent.com/en/product/special-stains/special-stains-kits/pas-kit-123456"
+    (saved_dir / "Access Denied.html").write_text(
+        f"<!-- saved from url=({len(blocked_url):04d}){blocked_url} --><title>Access Denied</title>", encoding="utf-8"
+    )
+
+    raw = tmp_path / "raw"
+    manifest = {"sources": []}
+    saved = ingest_module.collect_saved_pages(tmp_path / "URLs")
+    ingest_module.ingest_saved_pages(raw, manifest, "agilent", saved)
+
+    page = raw / "agilent" / "seahorse" / "seahorse-xf-pro-analyzer-1980223.html"
+    text = page.read_text(encoding="utf-8")
+    assert "Seahorse XF Pro Analyzer" in text and "96-well format" in text
+    assert "cookie consent" not in text and "Sign In" not in text
+    assert "https://www.agilent.com/cs/library/usermanuals/public/xf-pro-user-guide.pdf" in text
+    statuses = {record["url"]: record["status"] for record in manifest["sources"]}
+    assert statuses[url] == "local: browser-saved page"
+    assert statuses[blocked_url] == "skipped: access denied page"
+    assert not list((raw / "agilent").rglob("pas-kit-*"))
+
+    hits = ClinicalKB(raw, tmp_path / "index").search("mitochondrial respiration 96-well", k=3)
+    assert hits and hits[0].chunk.metadata["model"] == "Seahorse"
+    assert hits[0].chunk.metadata["source_doc"] == "seahorse-xf-pro-analyzer-1980223.html"

@@ -9,13 +9,22 @@ from typing import Iterable
 
 from core.rag_base import Hit, VectorIndex, chunk_text
 
+try:
+    from bs4 import BeautifulSoup
+except ImportError:  # pragma: no cover - optional in minimal contract environments
+    BeautifulSoup = None
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ROW_CAP = 3000
+# data/raw/agilent/<section>/ folder -> model metadata when the file name does not name one.
+SECTION_MODELS = {"seahorse": "Seahorse", "special-stains": "Artisan Link Pro"}
 
 
 def _agilent_model(name: str) -> str | None:
     lowered = name.lower()
+    if "s540md" in lowered or "s540 md" in lowered:
+        return "S540MD"
     if "seahorse" in lowered:
         return "Seahorse"
     if "nanozoomer" in lowered or "scanner" in lowered:
@@ -27,6 +36,31 @@ def _agilent_model(name: str) -> str | None:
 
 def _text_chunks(path: Path, vendor: str, model: str | None, doc_type: str, *, section: str | None = None) -> list:
     text = path.read_text(encoding="utf-8", errors="replace")
+    if path.suffix.lower() in {".html", ".htm"} and BeautifulSoup is not None:
+        soup = BeautifulSoup(text, "html.parser")
+        for element in soup.find_all(["script", "style", "noscript", "template", "svg", "iframe", "canvas"]):
+            element.decompose()
+        for element in list(soup.find_all(True)):
+            attrs = element.attrs or {}
+            labels = " ".join(
+                [str(attrs.get("id", "")), " ".join(str(value) for value in attrs.get("class", []))]
+            ).lower()
+            style = str(attrs.get("style", "")).lower().replace(" ", "")
+            if any(marker in labels for marker in ("cookie", "consent", "onetrust", "privacy", "tracking", "analytics")):
+                element.decompose()
+            elif "display:none" in style or "visibility:hidden" in style:
+                element.decompose()
+        text = soup.get_text(" ", strip=True)
+    if model is None and path.suffix.lower() in {".html", ".htm", ".txt"}:
+        lowered = text.lower()
+        if "s540md" in lowered or "s540 md" in lowered:
+            model = "S540MD"
+        elif "nanozoomer" in lowered:
+            model = "NanoZoomer"
+        elif "artisan link pro" in lowered:
+            model = "Artisan Link Pro"
+        elif "seahorse" in lowered:
+            model = "Seahorse"
     return chunk_text(text, path.name, section=section, extra_meta={"vendor": vendor, "model": model, "doc_type": doc_type})
 
 
@@ -88,9 +122,17 @@ class ClinicalKB:
     def _chunks(self) -> Iterable:
         agilent = self.raw_dir / "agilent"
         if agilent.exists():
-            for path in sorted(agilent.glob("*")):
-                if path.is_file() and path.suffix.lower() in {".txt", ".html", ".htm"}:
-                    yield from _text_chunks(path, "Agilent", _agilent_model(path.name), "product_page")
+            # Pages live in section folders (seahorse/, digital-pathology/, special-stains/, news/);
+            # files directly in agilent/ are still read for older layouts.
+            for path in sorted(agilent.rglob("*")):
+                if not path.is_file():
+                    continue
+                model = _agilent_model(path.name) or SECTION_MODELS.get(path.parent.name)
+                suffix = path.suffix.lower()
+                if suffix in {".txt", ".html", ".htm"}:
+                    yield from _text_chunks(path, "Agilent", model, "product_page")
+                elif suffix == ".pdf":
+                    yield from _pdf_chunks(path, "Agilent", model, "datasheet")
         clinical = self.raw_dir / "clinical"
         if clinical.exists():
             for path in sorted(clinical.rglob("*")):
