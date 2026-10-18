@@ -35,7 +35,11 @@ def test_asking_shows_answer_flow_and_tabs(monkeypatch):
     assert [t.label for t in at.tabs] == ["Answer", "Evidence", "Trace"]
     assert any("More information needed" in m.value for m in at.markdown)  # no diagnostics -> checklist card
     assert any(b.label == "Add diagnostics and re-run" for b in at.button)
-    assert any("How Suggest IQ routed your question" in s.value for s in at.subheader)  # the flow section
+    # nothing could be answered yet (no logs): a focused view, with the routing tucked away instead of a big diagram
+    titles = [x.value for x in at.subheader]
+    assert "What we know so far" in titles
+    assert not {"Recommendations", "Next steps", "How impact will be measured", "How Suggest IQ routed your question"} & set(titles)
+    assert any("How your question was routed" in e.label for e in at.expander)
 
 
 def test_example_chip_asks_in_one_click(monkeypatch):
@@ -79,7 +83,7 @@ def test_evaluation_reachable_from_home(monkeypatch):
 
 def test_answer_comes_before_how_it_was_routed(monkeypatch):
     at = _app(monkeypatch)
-    _click(at, "Failing Cisco router")
+    _click(at, "With logs attached")  # logs supplied, so agents can answer and the full layout is shown
     at = at.run()
     titles = [s.value for s in at.subheader]
     assert titles.index("Executive summary") < titles.index("Recommendations") < titles.index("Next steps") < titles.index("How Suggest IQ routed your question")
@@ -98,3 +102,11 @@ def test_navbar_is_on_every_screen_with_the_app_switch(monkeypatch):
     _click(at, "Consulting")
     at = at.run()
     assert len(at.tabs) == 3  # back on the consulting result the user left, not reset
+
+
+def test_full_layout_returns_once_diagnostics_are_supplied(monkeypatch):
+    at = _app(monkeypatch)
+    _click(at, "With logs attached")
+    at = at.run()
+    titles = [x.value for x in at.subheader]
+    assert "Executive summary" in titles and "Recommendations" in titles and "How Suggest IQ routed your question" in titles
