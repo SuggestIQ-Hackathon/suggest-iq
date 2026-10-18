@@ -21,7 +21,7 @@ def test_home_is_just_a_question_box(monkeypatch):
     at = _app(monkeypatch)
     assert not at.exception
     assert len(at.tabs) == 0  # no tabs before a question is asked
-    assert any("Guiding enterprises from questions to decisions" in m.value for m in at.markdown)
+    assert any("Guiding enterprises from" in m.value and "decisions" in m.value for m in at.markdown)
     assert at.text_area(key="query") is not None
     assert any(b.label == "Ask Suggest IQ" for b in at.button)
 
@@ -32,7 +32,7 @@ def test_asking_shows_answer_flow_and_tabs(monkeypatch):
     _click(at, "Ask Suggest IQ")  # form values are committed together with the submit click
     at = at.run()
     assert not at.exception
-    assert [t.label for t in at.tabs] == ["Answer", "Evidence", "Evaluation", "Trace"]
+    assert [t.label for t in at.tabs] == ["Answer", "Evidence", "Trace"]
     assert any("More information needed" in m.value for m in at.markdown)  # no diagnostics -> checklist card
     assert any(b.label == "Add diagnostics and re-run" for b in at.button)
     assert any("How Suggest IQ routed your question" in s.value for s in at.subheader)  # the flow section
@@ -40,10 +40,10 @@ def test_asking_shows_answer_flow_and_tabs(monkeypatch):
 
 def test_example_chip_asks_in_one_click(monkeypatch):
     at = _app(monkeypatch)
-    _click(at, "Same, with logs attached")
+    _click(at, "With logs attached")
     at = at.run()
     assert not at.exception
-    assert len(at.tabs) == 4
+    assert len(at.tabs) == 3
     assert not any("More information needed" in m.value for m in at.markdown)  # logs were attached
 
 
@@ -71,7 +71,7 @@ def test_new_question_returns_home(monkeypatch):
 
 def test_evaluation_reachable_from_home(monkeypatch):
     at = _app(monkeypatch)
-    _click(at, "See how we measure quality")
+    _click(at, "Evaluation")
     at = at.run()
     assert not at.exception
     assert any(s.value == "Evaluation" for s in at.subheader)
@@ -83,3 +83,18 @@ def test_answer_comes_before_how_it_was_routed(monkeypatch):
     at = at.run()
     titles = [s.value for s in at.subheader]
     assert titles.index("Executive summary") < titles.index("Recommendations") < titles.index("Next steps") < titles.index("How Suggest IQ routed your question")
+
+
+def test_navbar_is_on_every_screen_with_the_app_switch(monkeypatch):
+    at = _app(monkeypatch)
+    labels = lambda: {b.label for b in at.button}  # noqa: E731
+    assert {"Consulting", "Retail", "Evaluation"} <= labels()  # home
+    _click(at, "Failing Cisco router")
+    at = at.run()
+    assert {"Consulting", "Retail", "Evaluation", "New question"} <= {b.label for b in at.button}  # results
+    _click(at, "Retail")
+    at = at.run()
+    assert {"Consulting", "Retail"} <= {b.label for b in at.button} and "Evaluation" not in {b.label for b in at.button}  # retail
+    _click(at, "Consulting")
+    at = at.run()
+    assert len(at.tabs) == 3  # back on the consulting result the user left, not reset

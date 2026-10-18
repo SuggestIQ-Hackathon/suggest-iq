@@ -41,12 +41,22 @@ div[data-testid="stForm"] [data-baseweb="textarea"],div[data-testid="stForm"] [d
 div[data-testid="stForm"] textarea{font-size:1.12rem;line-height:1.55;color:var(--sd-ink)}
 div[data-testid="stForm"] details{border:0!important;background:transparent!important}
 div[data-testid="stForm"] details summary{color:var(--sd-muted);font-size:.9rem;padding-left:0}
-div[data-testid="stForm"] [data-testid="stFormSubmitButton"]{display:flex;justify-content:flex-end}
+div[data-testid="stForm"] [data-testid="stElementContainer"]:has([data-testid="stFormSubmitButton"]){margin-left:auto;width:auto}
+div[data-testid="stForm"] [data-testid="stFormSubmitButton"],div[data-testid="stForm"] div:has(>button[kind="secondaryFormSubmit"]),div[data-testid="stForm"] div:has(>button[kind="primaryFormSubmit"]){display:flex;justify-content:flex-end;text-align:right}
 div[data-testid="stForm"] [data-testid="stFormSubmitButton"] button{background:var(--sd-brand-strong);color:var(--sd-on-brand);border:0;border-radius:999px;padding:.55rem 1.5rem;font-weight:650;transition:transform .12s,background .12s}
 div[data-testid="stForm"] [data-testid="stFormSubmitButton"] button:hover{background:var(--sd-brand);transform:translateY(-1px)}
 div[data-testid="stForm"] [data-testid="stFormSubmitButton"] button::after{content:" \\2192"}
 .chiprow div.stButton>button{border-radius:999px;border:1px solid var(--sd-border);background:color-mix(in srgb,var(--sd-surface) 75%,transparent);color:var(--sd-ink);font-size:.86rem;font-weight:500;padding:.4rem .9rem;box-shadow:var(--sd-shadow-sm);transition:transform .12s,border-color .12s,color .12s}
 .chiprow div.stButton>button:hover{border-color:var(--sd-brand);color:var(--sd-brand);transform:translateY(-1px)}
+.headline{font-size:2.7rem;font-weight:800;letter-spacing:-.035em;text-align:center;line-height:1.12;margin-top:8vh;color:var(--sd-ink)}
+.headline em{font-style:normal;color:var(--sd-brand);text-decoration:underline;text-decoration-thickness:.09em;text-underline-offset:.12em;text-decoration-color:color-mix(in srgb,var(--sd-brand) 35%,transparent)}
+.subline{text-align:center;color:var(--sd-muted);font-size:1.08rem;margin:.9rem auto 1.8rem;max-width:560px}
+.eyebrow{font-size:.74rem;text-transform:uppercase;letter-spacing:.07em;color:var(--sd-muted);margin:1.4rem 0 .4rem;text-align:center;font-weight:600}
+.trust{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 18px;margin-top:2.2rem;color:var(--sd-muted);font-size:.84rem}
+.trust span::before{content:"\\2713";color:var(--sd-success);font-weight:800;margin-right:6px}
+.navchip{display:flex;justify-content:flex-end}
+button:focus-visible,[role="tab"]:focus-visible,textarea:focus-visible{outline:2px solid var(--sd-brand)!important;outline-offset:2px}
+div.stButton>button[kind="secondary"] span[data-testid="stIconMaterial"],div.stButton>button[kind="primary"] span[data-testid="stIconMaterial"]{font-size:1.15rem}
 .foot{text-align:center;color:var(--sd-muted);font-size:.82rem;margin-top:2.4rem}
 
 /* results */

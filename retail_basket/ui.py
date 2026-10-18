@@ -41,10 +41,6 @@ def clear_cart() -> None:
     st.session_state["retail_cart"] = []
 
 
-def back_to_consulting() -> None:
-    st.session_state["app"] = "consult"
-
-
 def _add_selected(names_to_sku: dict) -> None:
     choice = st.session_state.get("retail_pick")
     if choice in names_to_sku:
@@ -144,12 +140,11 @@ def render_quality() -> None:
 
 
 def render() -> None:
+    from p4_eval_ui.ui import nav
+
     svc = get_service()
-    c = st.columns([5, 2])
-    with c[0]:
-        theme.brand_small()
-        st.markdown('<div class="meta">Retail checkout · market-basket recommendations</div>', unsafe_allow_html=True)
-    c[1].button("← Back to Suggest IQ", key="retail_back", on_click=back_to_consulting, width="stretch")
+    nav.render_navbar("retail", show_eval=False)
+    st.markdown('<div class="meta" style="margin:-.2rem 0 .6rem">Retail checkout · market-basket recommendations</div>', unsafe_allow_html=True)
     tabs = st.tabs(["Checkout", "Model quality"])
     with tabs[0]:
         render_checkout(svc)

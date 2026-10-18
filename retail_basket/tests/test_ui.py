@@ -13,12 +13,12 @@ def _click(at, label):
 def test_home_toggle_opens_retail_checkout_and_back(monkeypatch):
     monkeypatch.setenv("REAL_DOMAINS", "none")
     at = st_testing.AppTest.from_file(APP, default_timeout=60).run()
-    assert any(b.label.startswith("Switch to Retail Checkout") for b in at.button)
-    _click(at, "Switch to Retail Checkout")
+    assert any(b.label == "Retail" for b in at.button)
+    _click(at, "Retail")
     at = at.run()
     assert not at.exception and [t.label for t in at.tabs] == ["Checkout", "Model quality"]
     assert any("Your cart is empty" in m.value for m in at.markdown)
-    _click(at, "← Back to Suggest IQ")
+    _click(at, "Consulting")
     at = at.run()
     assert not at.exception and len(at.tabs) == 0 and any(b.label == "Ask Suggest IQ" for b in at.button)
 
@@ -26,7 +26,7 @@ def test_home_toggle_opens_retail_checkout_and_back(monkeypatch):
 def test_adding_an_item_shows_recommendations_that_update_with_the_cart(monkeypatch):
     monkeypatch.setenv("REAL_DOMAINS", "none")
     at = st_testing.AppTest.from_file(APP, default_timeout=60).run()
-    _click(at, "Switch to Retail Checkout")
+    _click(at, "Retail")
     at = at.run()
     at.selectbox(key="retail_pick").select_index(0)
     at = at.run()
