@@ -4,6 +4,8 @@
 
 **Live link: https://suggest-iq.fly.dev/**
 
+**Demo video: https://drive.google.com/file/d/12Wq2TLEfotWo2AZ4weS929A0EuYLQ0VF/view?usp=sharing**
+
 ## Team
 
 - Manali Vijay Mankad
