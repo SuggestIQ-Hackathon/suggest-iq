@@ -2,7 +2,7 @@ VENV := .venv
 PY := $(VENV)/bin/python
 PYTEST := $(PY) -m pytest -q
 
-.PHONY: questions retail-eval retail-api test-retail data data-check docker-build docker-run setup test-harness test-p1 test-p2 test-p3 test-p4 test-integration test-all eval
+.PHONY: questions retail-eval retail-api test-retail data data-check docker-build docker-run deploy setup test-harness test-p1 test-p2 test-p3 test-p4 test-integration test-all eval
 setup:
 	uv venv $(VENV)
 	uv pip install --python $(PY) -r requirements.txt $(foreach f,$(wildcard p*/requirements.txt),-r $(f)) -r retail_basket/requirements.txt
@@ -38,3 +38,4 @@ data: ; $(PY) scripts/prepare_data.py
 data-check: ; $(PY) scripts/prepare_data.py --check
 docker-build: ; docker build -t suggest-iq .
 docker-run: ; docker run --rm -p 8501:8501 $(if $(wildcard .env),--env-file .env) -v suggest-iq-orders:/app/data/retail suggest-iq
+deploy: ; fly deploy --local-only --ha=false   # one instance: Streamlit keeps session state in memory
