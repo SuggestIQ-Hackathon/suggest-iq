@@ -37,22 +37,29 @@ def status_chip() -> str:
 
 
 def render_navbar(active: str, show_eval: bool = True, action: Optional[Action] = None) -> None:
-    """active: 'consult' | 'eval' | 'retail'. The column layout is identical on every page so the buttons never jump."""
-    cols = st.columns([2.2, 1.55, 1.35, 1.55, 2.9], vertical_alignment="center")
-    with cols[0]:
-        theme.brand_small()
-    cols[1].button("Consulting", key="nav_consult", icon=":material/psychology_alt:", on_click=_go_consulting, width="stretch",
-                   type="primary" if active == "consult" else "secondary")
-    cols[2].button("Retail", key="nav_retail", icon=":material/storefront:", on_click=_go_retail, width="stretch",
-                   type="primary" if active == "retail" else "secondary")
-    if show_eval:
-        cols[3].button("Evaluation", key="nav_eval", icon=":material/monitoring:", on_click=_go_eval, width="stretch",
-                       type="primary" if active == "eval" else "secondary")
-    with cols[4]:
-        if action:
-            sub = st.columns([1, 1.25], vertical_alignment="center")
-            sub[0].markdown(f'<div class="navchip">{status_chip()}</div>', unsafe_allow_html=True)
-            label, icon, cb = action
-            sub[1].button(label, key="nav_action", icon=icon, on_click=cb, width="stretch")
-        else:
-            st.markdown(f'<div class="navchip">{status_chip()}</div>', unsafe_allow_html=True)
+    """One sticky bar: logo | segmented switch (Consulting / Retail / Evaluation) | status chip, cart badge and page action.
+
+    active: 'consult' | 'eval' | 'retail'. The layout is identical on every page so nothing jumps between screens.
+    """
+    with st.container(key="topnav"):
+        left, mid, right = st.columns([2.4, 5, 3.4], vertical_alignment="center")
+        with left:
+            theme.brand_small()
+        with mid:
+            with st.container(horizontal=True, horizontal_alignment="center", key="navgroup", gap="xxsmall"):
+                st.button("Consulting", key="nav_consult", icon=":material/psychology_alt:", on_click=_go_consulting, width="content",
+                          type="primary" if active == "consult" else "secondary")
+                st.button("Retail", key="nav_retail", icon=":material/storefront:", on_click=_go_retail, width="content",
+                          type="primary" if active == "retail" else "secondary")
+                if show_eval:
+                    st.button("Evaluation", key="nav_eval", icon=":material/monitoring:", on_click=_go_eval, width="content",
+                              type="primary" if active == "eval" else "secondary")
+        with right:
+            with st.container(horizontal=True, horizontal_alignment="right", vertical_alignment="center", key="navright"):
+                if active == "retail":
+                    n = len(st.session_state.get("retail_cart", []))
+                    st.markdown(f'<div class="navchip">{theme.pill(f"Cart: {n} item" + ("" if n == 1 else "s"), T.BRAND if n else T.MUTED)}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="navchip">{status_chip()}</div>', unsafe_allow_html=True)
+                if action:
+                    label, icon, cb = action
+                    st.button(label, key="nav_action", icon=icon, on_click=cb, width="content")

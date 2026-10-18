@@ -321,7 +321,6 @@ def render() -> None:
     svc = get_service()
     st.markdown('<div class="retail-root"></div>', unsafe_allow_html=True)
     nav.render_navbar("retail", show_eval=False)
-    st.markdown('<div class="meta" style="margin:-.2rem 0 .6rem">Retail checkout · market-basket recommendations</div>', unsafe_allow_html=True)
     tabs = st.tabs(["Checkout", "Model quality"])
     with tabs[0]:
         render_checkout(svc)

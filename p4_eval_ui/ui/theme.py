@@ -142,6 +142,22 @@ div[data-testid="stColumn"]:has(.cart-anchor){position:sticky;top:14px;align-sel
 /* hovering the green check swaps the glyph to a trash can (the ligature text "delete" renders the icon) */
 [class*="st-key-add_"] button[kind="secondary"]:hover [data-testid="stIconMaterial"]{font-size:0!important}
 [class*="st-key-add_"] button[kind="secondary"]:hover [data-testid="stIconMaterial"]::after{content:"delete";font-size:1.35rem;line-height:1}
+/* top navigation bar: sticky, full-bleed, glassy; segmented switch in the middle */
+.st-key-topnav{position:sticky;top:0;z-index:100;padding:10px 0 10px;margin-bottom:14px;background:color-mix(in srgb,var(--sd-bg) 86%,transparent);
+  backdrop-filter:saturate(1.4) blur(12px);box-shadow:0 0 0 100vmax color-mix(in srgb,var(--sd-bg) 86%,transparent);clip-path:inset(0 -100vmax);border-bottom:1px solid var(--sd-border)}
+.st-key-navgroup{background:color-mix(in srgb,var(--sd-ink) 6%,transparent);padding:4px;border-radius:999px;width:fit-content;margin:0 auto;flex-wrap:nowrap}
+.st-key-navgroup button{border:0!important;background:transparent!important;box-shadow:none!important;color:var(--sd-muted)!important;border-radius:999px!important;padding:.38rem 1.05rem!important;font-weight:600}
+.st-key-navgroup button:hover{color:var(--sd-ink)!important;background:color-mix(in srgb,var(--sd-ink) 6%,transparent)!important;transform:none}
+.st-key-navgroup button[kind="primary"]{background:var(--sd-brand-strong)!important;color:var(--sd-on-brand)!important;box-shadow:var(--sd-shadow-sm)!important}
+.st-key-navright{flex-wrap:nowrap;gap:.5rem}
+.st-key-navright button{border-radius:999px;padding:.38rem 1rem}
+[data-testid="stMainBlockContainer"]{padding-top:0!important}
+.st-key-navright [data-testid="stElementContainer"]{display:flex;align-items:center;margin:0}
+.st-key-navright p,.st-key-navright .navchip{margin:0;line-height:1}
+.st-key-topnav [data-testid="stHorizontalBlock"]{align-items:center}
+.st-key-navright .navchip{transform:translateY(-50%)}
+.st-key-topnav .brand{transform:translateY(-8px)}
+.st-key-topnav{margin-top:-1rem}
 """
 CSS = f"<style>{CSS}</style>"
 
