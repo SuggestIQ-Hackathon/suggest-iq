@@ -1,0 +1,1 @@
+Catalyst 8300 fixture evidence: routed interfaces support secure WAN connectivity.
