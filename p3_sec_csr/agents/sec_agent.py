@@ -165,6 +165,31 @@ def _metric_evidence(hits: list[Hit], phrase: str) -> tuple[str, Hit] | None:
 
 def _best_generic_excerpt(text: str, query: str, limit: int = 380) -> str:
     """Select the sentence in a retrieved passage that best answers a generic query."""
+    cleaned_text = re.sub(r"\s+", " ", text).strip()
+    normalized_query = re.sub(r"\s+", " ", query).strip().lower()
+    heading_start = cleaned_text.lower().find(normalized_query)
+    if heading_start < 0:
+        # Headings may differ only in connective words (for example, "in our"
+        # in the filing versus "in the" in a user's pasted question). Locate
+        # the ordered meaningful words while keeping the match local to one
+        # heading or sentence.
+        heading_terms = [
+            token
+            for token in re.findall(r"[a-z0-9]+", normalized_query)
+            if len(token) > 2 and token not in GENERIC_QUERY_STOPWORDS
+        ]
+        if len(heading_terms) >= 3:
+            heading_pattern = r"\b" + r"\b.{0,60}?\b".join(
+                re.escape(token) for token in heading_terms
+            ) + r"\b"
+            heading_match = re.search(heading_pattern, cleaned_text, re.IGNORECASE)
+            if heading_match:
+                heading_start = heading_match.start()
+    if heading_start >= 0:
+        # A user may paste an exact filing heading. In that case the surrounding
+        # text after the heading is a stronger answer than a sentence selected
+        # from elsewhere in the same retrieval chunk.
+        return _truncate(cleaned_text[heading_start:], max(limit, 650))
     terms = {
         token
         for token in re.findall(r"[a-z0-9]+", query.lower())
@@ -176,7 +201,7 @@ def _best_generic_excerpt(text: str, query: str, limit: int = 380) -> str:
         if len(sentence.strip()) >= 35
     ]
     if not sentences:
-        return _truncate(text, limit)
+        return _truncate(cleaned_text, limit)
     scored = [
         (
             len(terms & set(re.findall(r"[a-z0-9]+", sentence.lower()))),
@@ -229,7 +254,24 @@ def _rerank_generic_hits(query: str, hits: list[Hit]) -> list[Hit]:
     if not scored:
         return []
     best = max(scored, key=lambda row: (row[0], -row[1], row[2]))
-    return [best[3]]
+    best_hit = best[3]
+    # PDF extraction can split one paragraph into neighboring chunks on the
+    # same page. Keep one matching continuation with the selected result so a
+    # heading-based answer does not stop halfway through the disclosure.
+    continuations = sorted(
+        (
+            row
+            for row in scored
+            if row[3] is not best_hit
+            and row[3].chunk.metadata.get("source_doc")
+            == best_hit.chunk.metadata.get("source_doc")
+            and row[3].chunk.metadata.get("page")
+            == best_hit.chunk.metadata.get("page")
+        ),
+        key=lambda row: (row[0], -row[1], row[2]),
+        reverse=True,
+    )
+    return [best_hit, *(row[3] for row in continuations[:1])]
 
 
 class SECAgent(BaseDomainAgent):
@@ -414,15 +456,19 @@ class SECAgent(BaseDomainAgent):
                 )
             companies = self._companies(query, context)
             if not companies:
+                # A question can quote any heading or sentence from a filing.  Do not
+                # require it to contain a pre-selected risk/finance keyword before
+                # searching the approved corpus: that would reject valid passages
+                # such as "Expanded AI Offerings in the Products and Services." A
+                # company-specific annual-report request is different; without a
+                # supported company we can state the corpus boundary accurately.
                 named_filing_terms = (
                     "annual report",
                     "annual filing",
                     "10-k",
                     "latest filing",
                 )
-                if self._is_in_scope(query) and not any(
-                    term in query.lower() for term in named_filing_terms
-                ):
+                if not any(term in query.lower() for term in named_filing_terms):
                     return self._generic_filing_topic_response(query)
                 coverage = ", ".join(
                     sorted({entry["company"] for entry in self.kb.manifest})

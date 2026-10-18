@@ -89,6 +89,18 @@ def test_real_sec_agent_answers_generic_share_repurchase_question():
     assert "additional $70.0 billion" in response.findings_summary
 
 
+def test_real_sec_agent_answers_filing_section_heading_without_company_name():
+    response = SECAgent().run("Expanded AI Offerings in the Products and Services")
+    assert response.status == "ANALYSIS_COMPLETE"
+    assert response.uncertainty_level == "LOW"
+    assert response.citations
+    assert all(
+        citation.source_doc == "Alphabet_10-K_FY2025.pdf"
+        for citation in response.citations
+    )
+    assert "ai" in response.findings_summary.lower()
+
+
 def test_real_csr_agent_rejects_unrelated_question():
     response = CSRAgent().run("What is the capital of France?")
     assert response.status == "ANALYSIS_COMPLETE"
