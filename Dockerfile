@@ -51,8 +51,9 @@ COPY --from=builder /app/data/raw/retail data/raw/retail
 COPY --from=builder /app/data/BUNDLE.json data/BUNDLE.json
 # the only writable data: the retail order log. Mount a volume here to keep orders across restarts.
 RUN mkdir -p data/retail data/eval && chown -R app:app data
-USER app
+# starts as root only to fix volume ownership, then runs as the app user (uid 10001)
 EXPOSE 8501
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s \
   CMD python -c "import os,urllib.request; urllib.request.urlopen('http://localhost:%s/_stcore/health' % os.getenv('PORT','8501'))"
+ENTRYPOINT ["/app/scripts/docker-entrypoint.sh"]
 CMD ["sh", "-c", "python -m p4_eval_ui.ui.launch --port ${PORT:-8501} --no-open"]

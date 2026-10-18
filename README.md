@@ -1,5 +1,18 @@
 # Agentic AI Management Consulting Platform (CMPE 256 Hackathon)
 
+**Suggest IQ** was built by our team as part of the **CMPE 256 (Recommender Systems) hackathon** at San José State University.
+
+**Live link: https://suggest-iq.fly.dev/**
+
+## Team
+
+- Manali Vijay Mankad
+- Vedanti Vilas Kanade
+- Ayushi Vishwas Surange
+- Jagath Jijo
+
+## About
+
 A manager agent routes customer questions to Technology, Clinical, SEC and Corporate-Responsibility agents, grounds answers in source documents with citations, ranks recommendations, and produces an executive consulting report with next steps and KPIs.
 
 **Start here:** `COMMON.md` (rules, contracts, ownership, tests). Then your member folder's `TODO.md`.
@@ -51,3 +64,15 @@ Notes for hosting platforms
 - Health check: `/_stcore/health`.
 - Updating data: replace files in `resources/`, run `make docker-build`, redeploy. The retail order log is the only data written at run time.
 - A free Gemini key allows about 20 requests per model per day. For a public demo use a billed key, or leave `LLM_MODE=mock`.
+
+### Deploy to Fly.io
+One-time setup (needs a Fly account with a card on file, and Docker running):
+```bash
+brew install flyctl && fly auth login
+fly apps create suggest-iq                  # pick another name if taken, and change `app` in fly.toml
+fly volumes create orders --size 1 --region sjc   # keeps retail orders across deploys
+fly secrets set GEMINI_API_KEY=...          # only if you switch LLM_MODE to live
+make deploy                                 # builds locally with Docker, pushes, one always-on machine
+```
+The app is then at `https://<app>.fly.dev`. To go live with a real model: `fly secrets set LLM_MODE=live LLM_MODEL=gemini/gemini-3.1-flash-lite GEMINI_API_KEY=...`.
+`scripts/docker-entrypoint.sh` fixes the volume ownership at start, then runs the app as a non-root user.
