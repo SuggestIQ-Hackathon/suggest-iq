@@ -1,4 +1,4 @@
-"""Streamlit dashboard. Owner: P4.   python -m p4_eval_ui.ui.launch   (light theme; or: streamlit run p4_eval_ui/ui/dashboard.py)
+"""Suggest IQ dashboard. Owner: P4.   python -m p4_eval_ui.ui.launch   (light theme; or: streamlit run p4_eval_ui/ui/dashboard.py)
 
 Works on mocks and on real agents (REAL_DOMAINS in .env / environment). Reads ConsultingReport + audit_trace only.
 """
@@ -43,12 +43,16 @@ SUMMARY_PREFIX = "CRITICAL DIAGNOSTIC PREREQUISITE"
 
 
 def _examples():
-    items = json.loads((REPO_ROOT / "core" / "fixtures" / "benchmark_queries.json").read_text())
-    pick = {"Q07": ("Clinical: pathology scanner", False), "Q11": ("SEC: Cisco risk factors", False), "Q16": ("Food security 2023", False),
-            "Q21": ("Tech + SEC", True), "Q22": ("Tech + SEC + CSR", True)}
-    out = [("Cisco router (from the brief)", BRIEF_EXAMPLE, False)]
-    out += [(label, i["query"], cross) for i in items for qid, (label, cross) in pick.items() if i["id"] == qid]
-    return out
+    """(label, question, diagnostics) chips for the home page. One click asks the question."""
+    items = {i["id"]: i["query"] for i in json.loads((REPO_ROOT / "core" / "fixtures" / "benchmark_queries.json").read_text())}
+    return [
+        ("Failing Cisco router", BRIEF_EXAMPLE, ""),
+        ("Same, with logs attached", BRIEF_EXAMPLE, DIAG_EXAMPLE),
+        ("Pathology scanner for our lab", items["Q07"], ""),
+        ("Cisco risk factors", items["Q11"], ""),
+        ("Food insecurity in 2023", items["Q16"], ""),
+        ("Cross-domain example", items["Q22"], ""),
+    ]
 
 
 @st.cache_resource(show_spinner=False)
@@ -66,22 +70,6 @@ def trim_summary(summary: str, has_banner: bool) -> str:
         parts = summary.split(". ", 1)
         return parts[1] if len(parts) > 1 else summary
     return summary
-
-
-def render_sidebar() -> None:
-    st.sidebar.markdown("### Try an example")
-    ex = _examples()
-    st.sidebar.markdown('<div class="group-h">Single domain</div>', unsafe_allow_html=True)
-    for label, text, cross in ex:
-        if not cross:
-            st.sidebar.button(label, key=f"ex_{label}", on_click=_set_query, args=(text,), width="stretch")
-    st.sidebar.markdown('<div class="group-h">Cross-domain (several agents)</div>', unsafe_allow_html=True)
-    for label, text, cross in ex:
-        if cross:
-            st.sidebar.button(label, key=f"ex_{label}", on_click=_set_query, args=(text,), width="stretch")
-    st.sidebar.markdown("---")
-    st.sidebar.button("Add diagnostics example", key="ex_diag", on_click=lambda: st.session_state.update(diagnostics=DIAG_EXAMPLE), width="stretch")
-    st.sidebar.caption("Tip: run the router example without logs first. The platform will ask for what it needs; paste it and run again.")
 
 
 def _is_dark():
@@ -131,23 +119,86 @@ def render_needs_info(manager, report, view) -> None:
     c[1].button("Use example logs", key="use_example_logs", on_click=lambda: st.session_state.update(followup_diag=DIAG_EXAMPLE))
 
 
-def render_consult(manager) -> None:
-    with st.container(border=True):
-        st.text_area("Customer question", key="query", height=96,
-                     placeholder="Describe the business problem, e.g. the Cisco router example from the sidebar.")
-        st.text_area("Diagnostics / telemetry (optional: paste logs, error codes, versions)", key="diagnostics", height=96)
-        run = st.button("Get consulting recommendation", type="primary", disabled=manager is None)
-    if run:
-        q = (st.session_state.get("query") or "").strip()
-        if not q:
-            st.warning("Enter a question first.")
-        else:
-            _run(manager, q, st.session_state.get("diagnostics", ""))
-    report = st.session_state.get("report")
-    if report is None:
-        st.subheader("How it works")
-        show_flow(None)
-        return
+def _ask(manager, query: str, diagnostics: str = "") -> None:
+    _run(manager, query, diagnostics)
+    st.session_state["view"] = "result" if st.session_state.get("report") is not None else "home"
+
+
+def _queue(query: str, diagnostics: str = "") -> None:
+    st.session_state["pending"] = (query, diagnostics)
+
+
+def _new_question() -> None:
+    for k in ("report", "query", "diagnostics", "followup_diag", "pending"):
+        st.session_state.pop(k, None)
+    st.session_state["view"] = "home"
+
+
+def _show(view: str) -> None:
+    st.session_state["view"] = view
+
+
+def render_home(manager) -> None:
+    _, mid, _ = st.columns([1, 3, 1])
+    with mid:
+        theme.brand_home()
+        with st.form("ask", border=True):
+            st.text_area("Ask a business question", key="query", height=110, label_visibility="collapsed",
+                         placeholder="Ask a business question, e.g. which parts should we order for our failing Cisco router?")
+            with st.expander("Attach logs or telemetry (optional)"):
+                st.text_area("Diagnostics", key="diagnostics", height=100, label_visibility="collapsed",
+                             placeholder="Paste show tech-support output, error codes, versions...")
+            go = st.form_submit_button("Ask Suggest IQ", disabled=manager is None)
+        if go:
+            q = (st.session_state.get("query") or "").strip()
+            if q:
+                _ask(manager, q, st.session_state.get("diagnostics", ""))
+                if st.session_state.get("report") is not None:
+                    st.rerun()
+            else:
+                st.warning("Type a question first.")
+        st.markdown('<div class="chiprow">', unsafe_allow_html=True)
+        examples = _examples()
+        for row in range(0, len(examples), 3):
+            cols = st.columns(3)
+            for col, (label, text, diag) in zip(cols, examples[row:row + 3]):
+                col.button(label, key=f"ex_{label}", on_click=_queue, args=(text, diag), width="stretch")
+        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="foot">Answers cite their sources. Mode: {esc(llm.llm_mode())} · agents: {esc(os.getenv("REAL_DOMAINS", "auto"))}</div>', unsafe_allow_html=True)
+        c = st.columns([2, 3, 2])
+        c[1].button("See how we measure quality", key="to_eval", on_click=_show, args=("eval",), type="tertiary", width="stretch")
+
+
+def render_topbar(show_new: bool = True) -> None:
+    c = st.columns([5, 1.4])
+    with c[0]:
+        theme.brand_small()
+    if show_new:
+        c[1].button("New question", key="new_q", on_click=_new_question, width="stretch")
+
+
+def render_eval_page(manager) -> None:
+    render_topbar(show_new=False)
+    st.button("← Back", key="back", on_click=_new_question)
+    st.subheader("Evaluation")
+    render_evaluation(manager)
+
+
+def render_results(manager, report) -> None:
+    render_topbar()
+    st.markdown(f'<div class="ask">{esc(report.query)}</div>', unsafe_allow_html=True)
+    tabs = st.tabs(["Answer", "Evidence", "Evaluation", "Trace"])
+    with tabs[0]:
+        render_answer(manager, report)
+    with tabs[1]:
+        render_evidence()
+    with tabs[2]:
+        render_evaluation(manager)
+    with tabs[3]:
+        render_trace()
+
+
+def render_answer(manager, report) -> None:
     view = explain(report)
     info_req = any(r.status == "INFORMATION_REQUEST" for r in report.domain_findings.values())
     st.markdown(theme.path_ribbon(report.audit_trace), unsafe_allow_html=True)
@@ -172,6 +223,9 @@ def render_consult(manager) -> None:
     with cols[3]:
         theme.tile("Evidence (citations)", str(n_cites), "verbatim snippets with source and page")
 
+    st.subheader("How Suggest IQ routed your question")
+    show_flow(report.audit_trace)
+
     if report.cross_domain_synthesis:
         st.subheader("Cross-domain synthesis")
         st.markdown(f'<div class="card">{esc(report.cross_domain_synthesis)}</div>', unsafe_allow_html=True)
@@ -195,23 +249,18 @@ def render_consult(manager) -> None:
         with st.expander("What would change this answer"):
             for w in view.what_would_change_this_answer:
                 st.markdown(f"- {w}")
-    with st.expander("How your question travelled (animated agent flow)"):
-        show_flow(report.audit_trace)
 
 
 def render_trace() -> None:
     report = st.session_state.get("report")
     if report is None:
-        st.subheader("Architecture")
-        show_flow(None)
-        st.info("Run a consultation to see the real path, latency and status of each agent.")
+        st.info("Ask a question to see the routing decision and per-agent execution.")
         return
     t = report.audit_trace
     c = st.columns(3)
     c[0].metric("Total latency (ms)", t.get("total_ms", "n/a"))
     c[1].metric("LLM mode", t.get("mode", "n/a"))
     c[2].metric("Fallbacks used", len(t.get("fallbacks_used", [])))
-    show_flow(t)
     routing = t.get("routing", {})
     st.subheader("1. Routing decision")
     st.markdown(f'Detected: {" ".join(theme.domain_pill(str(getattr(d, "value", d))) for d in routing.get("domains", []))}'
@@ -349,27 +398,27 @@ def render_evaluation(manager) -> None:
 
 
 def main() -> None:
-    st.set_page_config(page_title="AI Consulting Platform", page_icon="📊", layout="wide")
+    st.set_page_config(page_title="Suggest IQ", page_icon="💡", layout="wide", initial_sidebar_state="collapsed")
     theme.inject_css()
-    theme.hero(llm.llm_mode(), os.getenv("REAL_DOMAINS", "auto"))
-    render_sidebar()
     manager = get_manager()
     demo = st.query_params.get("demo")  # ?demo=cisco or ?demo=cisco-diag preloads a run (handy for demos and screenshots)
-    if demo and manager is not None and "report" not in st.session_state:
-        st.session_state["query"] = BRIEF_EXAMPLE
-        st.session_state["diagnostics"] = DIAG_EXAMPLE if demo == "cisco-diag" else ""
-        st.session_state["report"] = manager.handle(BRIEF_EXAMPLE, {"diagnostics": DIAG_EXAMPLE} if demo == "cisco-diag" else None)
+    if demo and manager is not None and "report" not in st.session_state and "demo_done" not in st.session_state:
+        st.session_state["demo_done"] = True
+        _ask(manager, BRIEF_EXAMPLE, DIAG_EXAMPLE if demo == "cisco-diag" else "")
+    pending = st.session_state.pop("pending", None)
+    if pending and manager is not None:
+        _ask(manager, pending[0], pending[1])
     if manager is None:
-        st.error("The Manager Agent (P1) is not built yet, so the platform cannot run.")
-    tabs = st.tabs(["Consult", "Request flow", "Evidence", "Evaluation"])
-    with tabs[0]:
-        render_consult(manager)
-    with tabs[1]:
-        render_trace()
-    with tabs[2]:
-        render_evidence()
-    with tabs[3]:
-        render_evaluation(manager)
+        st.error("The Manager Agent (P1) is not built yet, so Suggest IQ cannot run.")
+    view = st.session_state.get("view", "home")
+    report = st.session_state.get("report")
+    if view == "eval":
+        render_eval_page(manager)
+    elif report is not None:
+        render_results(manager, report)
+    else:
+        render_home(manager)
 
 
-main()
+if __name__ == "__main__":  # Streamlit runs the script as __main__; importing it (e.g. from tests) must not render
+    main()

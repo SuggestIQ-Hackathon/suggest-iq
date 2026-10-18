@@ -59,11 +59,40 @@ section[data-testid="stSidebar"] hr{border-color:color-mix(in srgb,var(--sd-on-b
 .stTabs [data-baseweb="tab"]{font-weight:600;padding:10px 14px}
 textarea{border-radius:var(--sd-radius-control)!important}
 """
+CSS += """
+[data-testid="stSidebar"],[data-testid="stSidebarCollapsedControl"],[data-testid="stSidebarCollapseButton"]{display:none}
+.brand{display:flex;align-items:center;gap:10px;font-weight:750;letter-spacing:-.02em;color:var(--sd-ink)}
+.brand .mark{background:var(--sd-brand-strong);color:var(--sd-on-brand);border-radius:var(--sd-radius-control);padding:2px 9px;font-weight:800}
+.brand.big{justify-content:center;font-size:3rem;margin-top:9vh}
+.brand.big .mark{padding:0 16px;border-radius:14px}
+.brand.small{font-size:1.35rem}
+.tagline{text-align:center;color:var(--sd-muted);font-size:1.15rem;margin:.4rem 0 1.6rem}
+div[data-testid="stForm"]{background:var(--sd-surface);border:1px solid var(--sd-border);border-radius:18px;padding:14px 16px 10px;box-shadow:0 6px 24px color-mix(in srgb,var(--sd-ink) 8%,transparent)}
+div[data-testid="stForm"] textarea{border:0!important;background:transparent!important;font-size:1.08rem;box-shadow:none!important}
+div[data-testid="stForm"] [data-baseweb="textarea"],div[data-testid="stForm"] [data-baseweb="base-input"]{background:transparent!important;border:0!important}
+div[data-testid="stForm"] [data-testid="stFormSubmitButton"]{display:flex;justify-content:flex-end}
+div[data-testid="stForm"] [data-testid="stExpander"]{border:0}
+div[data-testid="stForm"] button[kind="primaryFormSubmit"],div[data-testid="stForm"] button[kind="secondaryFormSubmit"]{background:var(--sd-brand);color:var(--sd-on-brand);border:0;border-radius:999px;padding:.45rem 1.4rem;font-weight:650}
+.chiprow div.stButton>button{border-radius:999px;border:1px solid var(--sd-border);background:var(--sd-surface);color:var(--sd-ink);font-size:.88rem;padding:.35rem .9rem}
+.chiprow div.stButton>button:hover{border-color:var(--sd-brand);color:var(--sd-brand)}
+.foot{text-align:center;color:var(--sd-muted);font-size:.85rem;margin-top:2.2rem}
+.ask{display:inline-block;background:var(--sd-brand-strong);color:var(--sd-on-brand);border-radius:18px 18px 18px 4px;padding:10px 16px;margin:6px 0 14px;max-width:90%;line-height:1.5}
+.topbar-chip{color:var(--sd-muted);font-size:.8rem}
+"""
 CSS = f"<style>{CSS}</style>"
 
 
 def inject_css() -> None:
     st.markdown(CSS, unsafe_allow_html=True)
+
+
+def brand_home() -> None:
+    st.markdown('<div class="brand big"><span>Suggest</span><span class="mark">IQ</span></div>'
+                '<div class="tagline">Guiding enterprises from questions to decisions</div>', unsafe_allow_html=True)
+
+
+def brand_small() -> None:
+    st.markdown('<div class="brand small"><span>Suggest</span><span class="mark">IQ</span></div>', unsafe_allow_html=True)
 
 
 def hero(llm_mode: str, real_domains: str) -> None:

@@ -1,4 +1,5 @@
-# AI Management Consulting Platform
+# Suggest IQ
+- Guiding enterprises from questions to decisions
 - SJSU CMPE 256 Recommender Systems Hackathon, Oct 17 2026
 - A manager agent routes customer problems to specialist agents and returns an evidence-backed consulting recommendation
 - Every answer shows: what to do next, why, and how the impact is measured
