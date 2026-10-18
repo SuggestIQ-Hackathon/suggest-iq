@@ -205,6 +205,25 @@ def render_results(manager, report) -> None:
         render_trace()
 
 
+def answer_status(statuses):
+    """Headline status for the answer tile, from the domain statuses. A hypothesis is never shown as 'Complete'."""
+    n = len(statuses)
+    if any(s == "INFORMATION_REQUEST" for s in statuses):
+        return "Provisional", f"{sum(s == 'INFORMATION_REQUEST' for s in statuses)} of {n} needs more information", T.WARNING
+    if any(s == "CONFIRMED_FAULT" for s in statuses):
+        return "Fault confirmed", "supplied diagnostics establish it", T.DANGER
+    if any(s == "HYPOTHESIS" for s in statuses):
+        return "Hypothesis", "plausible causes, none confirmed", T.INFO
+    return "Complete", f"{n} of {n} analyses finished", T.SUCCESS
+
+
+def split_rationale(why: str):
+    """Scoring formulas ('Score 0.17 = similarity ...') are engineering detail: return (friendly_line, details_or_None)."""
+    if why.lstrip().startswith("Score ") and "=" in why:
+        return "Ranked by similarity to your description and catalog compatibility; see scoring details.", why
+    return why, None
+
+
 def render_answer(manager, report) -> None:
     view = explain(report)
     info_req = any(r.status == "INFORMATION_REQUEST" for r in report.domain_findings.values())
@@ -221,9 +240,8 @@ def render_answer(manager, report) -> None:
     with cols[0]:
         theme.tile("Agents consulted", str(len(report.detected_domains)), ", ".join(theme.DOMAIN_LABEL.get(d.value, d.value) for d in report.detected_domains))
     with cols[1]:
-        theme.tile("Answer status", "Provisional" if info_req else "Complete",
-                   f"{sum(s == 'INFORMATION_REQUEST' for s in statuses)} needs info · {sum(s != 'INFORMATION_REQUEST' for s in statuses)} ready",
-                   T.WARNING if info_req else T.SUCCESS)
+        label, sub, color = answer_status(statuses)
+        theme.tile("Answer status", label, sub, color)
     with cols[2]:
         theme.tile("Overall confidence", view.overall_confidence.replace(" (provisional)", ""), "provisional" if prov else "from recommendations",
                    T.BUCKET_COLOR.get(view.overall_confidence.split(" ")[0], T.MUTED))
@@ -246,7 +264,10 @@ def render_answer(manager, report) -> None:
             f'<div class="card accent" style="--accent:{T.DOMAIN_COLOR.get(r.domain or "", T.BRAND)}"><div class="rec-top"><div><div class="rec-title">{esc(r.title)}</div>'
             f'<div class="meta">{esc(r.category)}</div></div><div>{theme.domain_pill(r.domain) if r.domain else ""}</div></div>'
             f'{theme.conf_bar(r.confidence_score, r.confidence_bucket)}'
-            f'<div class="why"><b>Why:</b> {esc(r.why)}</div>{ev}{caveats}</div>', unsafe_allow_html=True)
+            f'<div class="why"><b>Why:</b> {esc(split_rationale(r.why)[0])}</div>{ev}{caveats}</div>', unsafe_allow_html=True)
+        if split_rationale(r.why)[1]:
+            with st.expander("Scoring details"):
+                st.caption(r.why)
     st.subheader("Next steps")
     for i, s in enumerate(report.next_steps, 1):
         st.markdown(f'<div class="step"><div class="n">{i}</div><div>{esc(s)}</div></div>', unsafe_allow_html=True)
