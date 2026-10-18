@@ -98,7 +98,24 @@ def test_real_sec_agent_answers_filing_section_heading_without_company_name():
         citation.source_doc == "Alphabet_10-K_FY2025.pdf"
         for citation in response.citations
     )
+    assert response.findings_summary.startswith("According to Alphabet FY2025's filing:")
     assert "ai" in response.findings_summary.lower()
+    assert "AI Overviews" in response.findings_summary
+    assert "Google Cloud Platform" in response.findings_summary
+
+
+def test_real_sec_agent_answers_natural_language_question_for_supported_company():
+    response = SECAgent().run(
+        "How is Alphabet expanding its AI products and services?"
+    )
+    assert response.status == "ANALYSIS_COMPLETE"
+    assert response.uncertainty_level == "LOW"
+    assert response.citations
+    assert all(
+        citation.source_doc == "Alphabet_10-K_FY2025.pdf"
+        for citation in response.citations
+    )
+    assert "AI Overviews" in response.findings_summary
 
 
 def test_real_csr_agent_rejects_unrelated_question():

@@ -95,10 +95,13 @@ SEC_QUERY_VOCABULARY = (
 )
 
 GENERIC_QUERY_STOPWORDS = {
+    "and",
     "about",
     "annual",
     "are",
+    "do",
     "does",
+    "filing",
     "filings",
     "from",
     "how",
@@ -113,6 +116,8 @@ GENERIC_QUERY_STOPWORDS = {
     "what",
     "with",
 }
+
+QUESTION_STARTERS = {"what", "when", "where", "why", "how", "who", "which", "tell", "explain"}
 
 
 def _unique_citations(citations: list[Citation]) -> list[Citation]:
@@ -131,6 +136,58 @@ def _truncate(text: str, limit: int = 380) -> str:
     if len(cleaned) <= limit:
         return cleaned
     return cleaned[:limit].rsplit(" ", 1)[0].rstrip(" ,;:") + "..."
+
+
+def _heading_start(text: str, query: str) -> int:
+    """Find a copied filing heading in text, allowing minor connective-word changes."""
+    normalized_query = re.sub(r"\s+", " ", query).strip().lower()
+    heading_start = text.lower().find(normalized_query)
+    if heading_start >= 0:
+        return heading_start
+
+    heading_terms = [
+        _lexical_root(token)
+        for token in re.findall(r"[a-z0-9]+", normalized_query)
+        if (len(token) > 2 or token == "ai")
+        and token not in GENERIC_QUERY_STOPWORDS
+        and token not in COMPANY_ALIASES
+    ]
+    if len(heading_terms) < 3:
+        return -1
+    heading_pattern = r"\b" + r"\b.{0,60}?\b".join(
+        re.escape(token) + r"\w*" for token in heading_terms
+    ) + r"\b"
+    heading_match = re.search(heading_pattern, text, re.IGNORECASE)
+    return heading_match.start() if heading_match else -1
+
+
+def _looks_like_heading(query: str) -> bool:
+    """Distinguish a pasted section heading from an ordinary natural-language question."""
+    tokens = re.findall(r"[a-z0-9]+", query.lower())
+    meaningful_tokens = [
+        token
+        for token in tokens
+        if (len(token) > 2 or token == "ai")
+        and token not in GENERIC_QUERY_STOPWORDS
+    ]
+    return (
+        len(meaningful_tokens) >= 4
+        and (not tokens or tokens[0] not in QUESTION_STARTERS)
+        and "?" not in query
+    )
+
+
+def _lexical_root(token: str) -> str:
+    """Small, deterministic normalization for retrieval-term variants."""
+    if token.endswith("ies") and len(token) > 4:
+        token = token[:-3] + "y"
+    elif token.endswith("s") and len(token) > 4:
+        token = token[:-1]
+    if token.endswith("ing") and len(token) > 5:
+        return token[:-3]
+    if token.endswith("ed") and len(token) > 4:
+        return token[:-2]
+    return token
 
 
 def _metric_evidence(hits: list[Hit], phrase: str) -> tuple[str, Hit] | None:
@@ -166,34 +223,17 @@ def _metric_evidence(hits: list[Hit], phrase: str) -> tuple[str, Hit] | None:
 def _best_generic_excerpt(text: str, query: str, limit: int = 380) -> str:
     """Select the sentence in a retrieved passage that best answers a generic query."""
     cleaned_text = re.sub(r"\s+", " ", text).strip()
-    normalized_query = re.sub(r"\s+", " ", query).strip().lower()
-    heading_start = cleaned_text.lower().find(normalized_query)
-    if heading_start < 0:
-        # Headings may differ only in connective words (for example, "in our"
-        # in the filing versus "in the" in a user's pasted question). Locate
-        # the ordered meaningful words while keeping the match local to one
-        # heading or sentence.
-        heading_terms = [
-            token
-            for token in re.findall(r"[a-z0-9]+", normalized_query)
-            if len(token) > 2 and token not in GENERIC_QUERY_STOPWORDS
-        ]
-        if len(heading_terms) >= 3:
-            heading_pattern = r"\b" + r"\b.{0,60}?\b".join(
-                re.escape(token) for token in heading_terms
-            ) + r"\b"
-            heading_match = re.search(heading_pattern, cleaned_text, re.IGNORECASE)
-            if heading_match:
-                heading_start = heading_match.start()
+    heading_start = _heading_start(cleaned_text, query)
     if heading_start >= 0:
         # A user may paste an exact filing heading. In that case the surrounding
         # text after the heading is a stronger answer than a sentence selected
         # from elsewhere in the same retrieval chunk.
         return _truncate(cleaned_text[heading_start:], max(limit, 650))
     terms = {
-        token
+        _lexical_root(token)
         for token in re.findall(r"[a-z0-9]+", query.lower())
-        if len(token) > 2 and token not in GENERIC_QUERY_STOPWORDS
+        if (len(token) > 2 or token == "ai")
+        and token not in GENERIC_QUERY_STOPWORDS
     }
     sentences = [
         re.sub(r"\s+", " ", sentence).strip()
@@ -204,7 +244,13 @@ def _best_generic_excerpt(text: str, query: str, limit: int = 380) -> str:
         return _truncate(cleaned_text, limit)
     scored = [
         (
-            len(terms & set(re.findall(r"[a-z0-9]+", sentence.lower()))),
+            len(
+                terms
+                & {
+                    _lexical_root(token)
+                    for token in re.findall(r"[a-z0-9]+", sentence.lower())
+                }
+            ),
             len(re.findall(r"[$%0-9]", sentence)),
             -index,
             sentence,
@@ -223,15 +269,19 @@ def _best_generic_excerpt(text: str, query: str, limit: int = 380) -> str:
 def _rerank_generic_hits(query: str, hits: list[Hit]) -> list[Hit]:
     """Keep generic answers focused on the filing passages that best match the query."""
     terms = {
-        token
+        _lexical_root(token)
         for token in re.findall(r"[a-z0-9]+", query.lower())
-        if len(token) > 2 and token not in GENERIC_QUERY_STOPWORDS
+        if (len(token) > 2 or token == "ai")
+        and token not in GENERIC_QUERY_STOPWORDS
     }
     if not terms:
         return hits
     scored = []
     for hit in hits:
-        tokens = re.findall(r"[a-z0-9]+", hit.chunk.text.lower())
+        tokens = [
+            _lexical_root(token)
+            for token in re.findall(r"[a-z0-9]+", hit.chunk.text.lower())
+        ]
         matched_terms = {token for token in tokens if token in terms}
         if not matched_terms:
             continue
@@ -334,16 +384,30 @@ class SECAgent(BaseDomainAgent):
             uncertainty_level="HIGH",
         )
 
-    def _generic_filing_topic_response(self, query: str) -> DomainResponse:
-        """Answer a supported filing topic when the user did not name a company."""
+    def _generic_filing_topic_response(
+        self, query: str, company: str | None = None
+    ) -> DomainResponse:
+        """Answer a filing topic without requiring a fixed question template."""
         retrieval_query = query
         if "delaware law" in query.lower():
             retrieval_query = (
                 f"{query} anti-takeover provisions business combination "
                 "voting stock acquisition"
             )
+        fiscal_year = self._requested_year(query)
+        if company and fiscal_year is None:
+            fiscal_year = self._latest_year(company)
         hits = _rerank_generic_hits(
-            retrieval_query, self.kb.search(retrieval_query, k=5)
+            retrieval_query,
+            self.kb.search(
+                retrieval_query,
+                # Hash embeddings are deliberately lightweight for offline
+                # tests. A wider candidate set lets lexical re-ranking recover
+                # a specific filing passage from a natural-language question.
+                k=20,
+                company=company,
+                fiscal_year=fiscal_year,
+            ),
         )[:3]
         if not hits:
             return DomainResponse(
@@ -356,14 +420,25 @@ class SECAgent(BaseDomainAgent):
                 citations=self._coverage_citations(),
                 uncertainty_level="HIGH",
             )
+        answer_hits = hits
+        if (
+            _looks_like_heading(query)
+            and len(hits) > 1
+            and _heading_start(hits[0].chunk.text, query) >= 0
+        ):
+            # The first chunk contains the title and the next chunk contains
+            # the explanatory paragraph. Present the latter as the answer.
+            answer_hits = hits[1:]
+
         summaries = []
-        for hit in hits:
+        for hit in answer_hits:
             metadata = hit.chunk.metadata
             company = metadata.get("company", "A supported company")
             year = metadata.get("fiscal_year")
             year_label = f" FY{year}" if year else ""
             summaries.append(
-                f"{company}{year_label}: {_best_generic_excerpt(hit.chunk.text, retrieval_query)} "
+                f"According to {company}{year_label}'s filing: "
+                f"{_best_generic_excerpt(hit.chunk.text, retrieval_query)} "
                 f"{source_marker(hit)}"
             )
         return DomainResponse(
@@ -373,11 +448,11 @@ class SECAgent(BaseDomainAgent):
                 " ".join(summaries)
                 + " This summary is limited to the cited filing disclosures."
             ),
-            citations=hits_to_citations(hits),
+            citations=hits_to_citations(answer_hits),
             uncertainty_level=(
                 "LOW"
-                if evidence_coverage(query, hits) >= 0.5
-                else uncertainty_for(query, hits)
+                if evidence_coverage(query, answer_hits) >= 0.5
+                else uncertainty_for(query, answer_hits)
             ),
         )
 
@@ -454,6 +529,7 @@ class SECAgent(BaseDomainAgent):
                     ],
                     uncertainty_level="HIGH",
                 )
+            lowered = query.lower()
             companies = self._companies(query, context)
             if not companies:
                 # A question can quote any heading or sentence from a filing.  Do not
@@ -481,10 +557,18 @@ class SECAgent(BaseDomainAgent):
                     uncertainty_level="HIGH",
                 )
 
-            if not self._is_in_scope(query):
+            if any(re.search(pattern, lowered) for pattern in OUT_OF_SCOPE_PATTERNS):
                 return self._out_of_scope_response(companies)
 
-            lowered = query.lower()
+            # Once the company is supported, search its filings for the user's
+            # wording rather than forcing them to use a predefined risk or
+            # finance phrase. The structured paths below remain preferable for
+            # risk and metric questions because they also produce actions.
+            if not self._is_in_scope(query):
+                if len(companies) == 1:
+                    return self._generic_filing_topic_response(query, companies[0])
+                return self._generic_filing_topic_response(query)
+
             financial = any(
                 term in lowered
                 for term in ("revenue", "gross margin", "financial metric", "income")
