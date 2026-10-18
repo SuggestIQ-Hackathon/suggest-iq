@@ -109,6 +109,26 @@ div[data-baseweb="textarea"],[data-testid="stTextAreaRootElement"]{background:va
 div[data-baseweb="textarea"] textarea{background:transparent!important}
 div[data-testid="stForm"] div[data-baseweb="textarea"],div[data-testid="stForm"] [data-testid="stTextAreaRootElement"],div[data-testid="stForm"] [data-testid="stTextAreaRootElement"] *{background:transparent!important;border:0!important;box-shadow:none!important}
 [data-testid="stDataFrame"]{border:1px solid var(--sd-border);border-radius:14px;overflow:hidden}
+
+/* retail store */
+.block-container:has(.retail-root){max-width:1560px}
+div[data-testid="stColumn"]:has(.cart-anchor){position:sticky;top:14px;align-self:flex-start}
+.pcard{border:1px solid var(--sd-border);border-radius:16px;background:var(--sd-surface);padding:12px 12px 10px;box-shadow:var(--sd-shadow-sm);margin:0 0 6px;position:relative;transition:box-shadow .15s,border-color .15s}
+.pcard:hover{box-shadow:var(--sd-shadow-lg);border-color:color-mix(in srgb,var(--sd-brand) 40%,var(--sd-border))}
+.pimg{height:104px;border-radius:12px;background:color-mix(in srgb,var(--sd-brand) 6%,var(--sd-surface));border:1px solid color-mix(in srgb,var(--sd-brand) 10%,var(--sd-border));display:flex;align-items:center;justify-content:center;color:var(--sd-brand)}
+.pimg svg{width:58px;height:58px}
+.pbrand{font-size:.7rem;text-transform:uppercase;letter-spacing:.07em;color:var(--sd-muted);margin-top:10px;font-weight:600}
+.pname{font-weight:700;font-size:.93rem;line-height:1.3;min-height:2.6em;margin-top:2px}
+.pmeta{color:var(--sd-muted);font-size:.78rem;margin-top:4px;overflow-wrap:anywhere}
+.pflag{position:absolute;top:18px;left:18px;background:var(--sd-success);color:var(--sd-on-brand);border-radius:999px;font-size:.7rem;font-weight:700;padding:2px 9px}
+.pop{position:absolute;top:18px;right:18px;background:var(--sd-surface);border:1px solid var(--sd-border);border-radius:999px;font-size:.68rem;font-weight:600;padding:1px 8px;color:var(--sd-muted)}
+.resultsbar{display:flex;justify-content:space-between;align-items:center;color:var(--sd-muted);font-size:.86rem;margin:2px 2px 8px}
+.qhero{border:1px solid var(--sd-border);border-radius:18px;background:var(--sd-surface);box-shadow:var(--sd-shadow-sm);padding:20px 24px;margin:6px 0 14px}
+.qhero h3{margin:0 0 6px!important;font-size:1.25rem!important}
+.qhero.warn{border-left:6px solid var(--sd-warning)}
+.qhero.good{border-left:6px solid var(--sd-success)}
+[class*="st-key-pg_"] button{padding-left:0!important;padding-right:0!important}
+.gap{height:14px}
 """
 CSS = f"<style>{CSS}</style>"
 

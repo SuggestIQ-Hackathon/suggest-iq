@@ -12,6 +12,7 @@ from p4_eval_ui.ui import theme
 from p4_eval_ui.ui import tokens as T
 from retail_basket import evaluate
 from retail_basket.data import CATEGORIES
+from retail_basket.icons import icon_svg
 from retail_basket.model import evidence_level
 from retail_basket.service import RecommenderService
 
@@ -23,7 +24,8 @@ def get_service() -> RecommenderService:
     return RecommenderService()
 
 
-PAGE = 9  # products shown per "page" in the browser
+PAGE = 12  # products per page: 4 columns x 3 rows
+SORTS = ["Featured", "Most bought", "Name A to Z"]
 LEVEL_COLOR = {"limited": T.WARNING, "moderate": T.INFO, "strong": T.SUCCESS}
 
 
@@ -48,12 +50,12 @@ def clear_cart() -> None:
     st.session_state["retail_cart"] = []
 
 
-def show_more() -> None:
-    st.session_state["retail_show"] = st.session_state.get("retail_show", PAGE) + PAGE
+def goto_page(n: int) -> None:
+    st.session_state["retail_page"] = n
 
 
 def reset_paging() -> None:
-    st.session_state["retail_show"] = PAGE
+    st.session_state["retail_page"] = 1
 
 
 def place_order() -> None:
@@ -69,37 +71,63 @@ def place_order() -> None:
     st.session_state["retail_cart"] = []
 
 
-def _product_card(item, in_cart: bool) -> str:
-    return (f'<div class="card" style="margin:0 0 6px;min-height:176px"><div class="rec-title" style="font-size:.98rem">{esc(item.name)}</div>'
-            f'<div class="meta">SKU {esc(item.sku)} · {esc(item.brand)}</div>'
-            f'<div style="margin-top:6px">{theme.pill(item.category, T.MUTED, square=True)}</div></div>')
+def _product_card(item, in_cart: bool, bought: int) -> str:
+    flag = '<div class="pflag">In cart</div>' if in_cart else ""
+    return (f'<div class="pcard">{flag}<div class="pop">{bought} orders</div><div class="pimg">{icon_svg(item.category)}</div>'
+            f'<div class="pbrand">{esc(item.brand)}</div><div class="pname">{esc(item.name)}</div>'
+            f'<div class="pmeta">SKU {esc(item.sku)}</div><div class="pmeta" style="margin-top:1px">{esc(item.category)}</div></div>')
+
+
+def _sorted(items, svc, how: str):
+    if how == "Most bought":
+        return sorted(items, key=lambda i: (-svc.model.item_count.get(i.sku, 0), i.name))
+    if how == "Name A to Z":
+        return sorted(items, key=lambda i: i.name.lower())
+    return sorted(items, key=lambda i: (CATEGORIES.index(i.category) if i.category in CATEGORIES else 99, i.name))
+
+
+def render_pager(total_pages: int, page: int) -> None:
+    if total_pages <= 1:
+        return
+    nums = list(range(1, total_pages + 1))
+    cols = st.columns([4, 2.3] + [0.9] * len(nums) + [2.3, 4], vertical_alignment="center")
+    cols[1].button("Previous", key="pg_prev", icon=":material/chevron_left:", on_click=goto_page, args=(page - 1,), disabled=page <= 1, width="stretch")
+    for col, n in zip(cols[2:2 + len(nums)], nums):
+        col.button(str(n), key=f"pg_{n}", on_click=goto_page, args=(n,), type="primary" if n == page else "secondary", width="stretch")
+    cols[2 + len(nums)].button("Next", key="pg_next", icon=":material/chevron_right:", icon_position="right", on_click=goto_page, args=(page + 1,),
+                               disabled=page >= total_pages, width="stretch")
 
 
 def render_browser(svc: RecommenderService) -> None:
-    st.subheader("Browse products")
-    st.text_input("Search products", key="retail_search", placeholder="Search by name, brand or SKU", icon=":material/search:",
-                  label_visibility="collapsed", on_change=reset_paging)
+    top = st.columns([2.2, 1], vertical_alignment="center")
+    top[0].text_input("Search products", key="retail_search", placeholder="Search by name, brand or SKU", icon=":material/search:",
+                      label_visibility="collapsed", on_change=reset_paging)
+    how = top[1].selectbox("Sort", SORTS, key="retail_sort", label_visibility="collapsed", on_change=reset_paging)
     cats = ["All"] + [c for c in CATEGORIES if any(i.category == c for i in svc.catalog.values())]
     pick = st.pills("Category", cats, default="All", key="retail_cat", label_visibility="collapsed", on_change=reset_paging) or "All"
     q = (st.session_state.get("retail_search") or "").strip().lower()
-    items = [i for i in sorted(svc.catalog.values(), key=lambda i: (CATEGORIES.index(i.category) if i.category in CATEGORIES else 99, i.name))
-             if (pick == "All" or i.category == pick) and (not q or q in i.name.lower() or q in i.sku.lower() or q in i.brand.lower())]
-    limit = st.session_state.get("retail_show", PAGE)
+    items = _sorted([i for i in svc.catalog.values()
+                     if (pick == "All" or i.category == pick) and (not q or q in i.name.lower() or q in i.sku.lower() or q in i.brand.lower())], svc, how)
+    total_pages = max(1, -(-len(items) // PAGE))
+    page = min(max(1, st.session_state.get("retail_page", 1)), total_pages)
+    st.session_state["retail_page"] = page
+    first, last = (page - 1) * PAGE, min(page * PAGE, len(items))
+    st.markdown(f'<div class="resultsbar"><span>{"Showing " + str(first + 1) + " to " + str(last) + " of " + str(len(items)) + " products" if items else "No products"}'
+                f'{" in " + esc(pick) if pick != "All" else ""}</span><span>Page {page} of {total_pages}</span></div>', unsafe_allow_html=True)
     cart = _cart()
     if not items:
         st.markdown('<div class="card"><b>No products match.</b><div class="meta">Try a different search or category.</div></div>', unsafe_allow_html=True)
-    for row in range(0, min(limit, len(items)), 3):
-        cols = st.columns(3)
-        for col, item in zip(cols, items[row:min(row + 3, limit)]):
+    page_items = items[first:last]
+    for row in range(0, len(page_items), 4):
+        cols = st.columns(4)
+        for col, item in zip(cols, page_items[row:row + 4]):
             with col:
-                st.markdown(_product_card(item, item.sku in cart), unsafe_allow_html=True)
+                st.markdown(_product_card(item, item.sku in cart, svc.model.item_count.get(item.sku, 0)), unsafe_allow_html=True)
                 if item.sku in cart:
-                    st.button("In cart", key=f"add_{item.sku}", icon=":material/check:", disabled=True, width="stretch")
+                    st.button("Remove", key=f"add_{item.sku}", icon=":material/remove_shopping_cart:", on_click=remove_item, args=(item.sku,), width="stretch")
                 else:
-                    st.button("Add to cart", key=f"add_{item.sku}", icon=":material/add_shopping_cart:", on_click=add_item, args=(item.sku,), width="stretch")
-    if len(items) > limit:
-        st.button(f"Show {min(PAGE, len(items) - limit)} more of {len(items) - limit} remaining", key="retail_more", on_click=show_more, type="tertiary")
-    st.caption(f"{len(items)} of {len(svc.catalog)} products")
+                    st.button("Add to cart", key=f"add_{item.sku}", icon=":material/add_shopping_cart:", on_click=add_item, args=(item.sku,), type="primary", width="stretch")
+    render_pager(total_pages, page)
 
 
 def render_cart(svc: RecommenderService) -> None:
@@ -165,10 +193,11 @@ def render_recommendations(svc: RecommenderService) -> None:
 
 
 def render_checkout(svc: RecommenderService) -> None:
-    left, right = st.columns([6, 4.5], gap="large")
+    left, right = st.columns([7.4, 3.6], gap="large")
     with left:
         render_browser(svc)
     with right:
+        st.markdown('<div class="cart-anchor"></div>', unsafe_allow_html=True)
         render_cart(svc)
         render_recommendations(svc)
         info = svc.info()
@@ -187,7 +216,7 @@ def _retrain() -> None:
 def render_monitoring() -> None:
     svc = get_service()
     m = svc.metrics()
-    st.subheader("Monitoring and retraining")
+    st.markdown('<h3 style="margin:.2rem 0 .6rem!important">Monitoring and retraining</h3>', unsafe_allow_html=True)
     cols = st.columns(4)
     with cols[0]:
         theme.tile("Requests served", str(m["requests"]), "since the app started")
@@ -197,48 +226,92 @@ def render_monitoring() -> None:
         theme.tile("Avg latency", f"{m['avg_latency_ms']:.2f} ms", "per recommendation")
     with cols[3]:
         theme.tile("Orders waiting", str(m["pending_orders"]), "placed at checkout, not yet learned", T.WARNING if m["pending_orders"] else T.SUCCESS)
+    st.markdown('<div class="gap"></div>', unsafe_allow_html=True)
     st.button("Retrain now", key="retail_retrain", icon=":material/model_training:", on_click=_retrain, disabled=m["pending_orders"] == 0)
     done = st.session_state.pop("retail_retrained", None)
     if done:
         st.markdown(f'<div class="summary">Retrained: model v{done["model_version"]} now learns from {done["n_orders"]} orders.</div>', unsafe_allow_html=True)
-    st.divider()
+
+
+def _bar_chart(df, value, title, ci=None):
+    import altair as alt
+
+    domain = [0, max(0.4, float(df[value].max()) * 1.3)]
+    base = alt.Chart(df, title=title).encode(x=alt.X("Method:N", sort=None, title=None, axis=alt.Axis(labelAngle=0, labelLimit=140)),
+                                            color=alt.Color("Method:N", legend=None, scale=alt.Scale(domain=list(df["Method"]), range=[T.BRAND, T.MUTED, T.SUBTLE, T.SUBTLE][:len(df)])))
+    bars = base.mark_bar(cornerRadiusEnd=6).encode(y=alt.Y(f"{value}:Q", scale=alt.Scale(domain=domain), title=None, axis=alt.Axis(format="%")),
+                                                   tooltip=["Method", alt.Tooltip(f"{value}:Q", format=".1%")])
+    text = base.mark_text(dy=-18, fontWeight="bold", color=T.INK).encode(y=f"{value}:Q", text=alt.Text(f"{value}:Q", format=".1%"))
+    layers = bars + text
+    if ci is not None:
+        err = alt.Chart(ci).mark_errorbar(color=T.INK, thickness=2).encode(x=alt.X("Method:N", sort=None), y=alt.Y("low:Q", title=None), y2="high:Q")
+        layers = layers + err
+    return layers.properties(height=250)
 
 
 def render_quality() -> None:
-    st.subheader("Model quality")
-    st.caption("5-fold cross-validation: for every held-out order we treat the first items as the cart and check whether a recommended item is bought later in the same order.")
-    if st.button("Run evaluation now", key="retail_eval_run"):
+    import pandas as pd
+
+    top = st.columns([4, 1.4], vertical_alignment="center")
+    top[0].markdown('<h3 style="margin:0!important">Model quality</h3><div class="meta">Does "customers also bought" actually predict what people buy next? '
+                    "5-fold cross-validation over past orders.</div>", unsafe_allow_html=True)
+    if top[1].button("Run evaluation now", key="retail_eval_run", icon=":material/refresh:", width="stretch"):
         with st.spinner("Cross-validating..."):
             res = evaluate.run(do_sweep=False)
             evaluate.OUT.parent.mkdir(parents=True, exist_ok=True)
             evaluate.OUT.write_text(json.dumps(res, indent=2))
-    render_monitoring()
     res = _load_eval()
     if not res:
         st.info("No evaluation yet. Click **Run evaluation now** or run `make retail-eval`.")
+        render_monitoring()
         return
-    k = res["k"]
-    cv = res["cross_validation"]
-    sc = res.get("signal_check")
+    k, cv, sc = res["k"], res["cross_validation"], res.get("signal_check")
+    m, pop, rnd = cv["model"], cv["popularity"], cv["random"]
+
     if sc:
-        box = "need" if sc["looks_random"] else "summary"
-        st.markdown(f'<div class="{box}"><h4>What this data can and cannot show</h4><div>{esc(sc["verdict"])}</div>'
-                    f'<div class="meta">Most frequent item pair: {sc["observed_max_pair_count"]} orders. The same baskets shuffled at random give '
-                    f'{sc["shuffled_max_pair_count_range"][0]} to {sc["shuffled_max_pair_count_range"][1]}. Unusual pairs found: {sc["pairs_with_z_gt_3"]} '
-                    f'(chance alone predicts {sc["pairs_with_z_gt_3_expected_by_chance"]}).</div></div>', unsafe_allow_html=True)
-    rows = []
-    names = {"model": "Market-basket model", "popularity": "Most popular items", "random": "Random items", "popularity_on_model_covered_carts": "Most popular (same carts the model answered)"}
-    for key, label in names.items():
-        r = cv[key]
-        rows.append({"Method": label, "Coverage": r["coverage"], f"Hit@{k} (all carts)": r[f"hit@{k}"], f"Hit@{k} (answered carts)": r[f"hit@{k}_covered"],
-                     f"Precision@{k}": r[f"precision@{k}"], f"NDCG@{k}": r[f"ndcg@{k}"]})
-    fmt = {c: st.column_config.ProgressColumn(c, min_value=0, max_value=1, format="percent") for c in rows[0] if c not in ("Method", f"NDCG@{k}")}
-    st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch", column_config=fmt)
-    ci = cv["model"][f"hit@{k}_ci95"]
-    st.caption(f"Model hit@{k} 95% confidence interval: {100 * ci[0]:.1f}% to {100 * ci[1]:.1f}%. Coverage is the share of carts the model was willing to answer; "
-               "for the rest it correctly shows nothing, which counts as a miss in the 'all carts' column.")
-    if res.get("sweep"):
-        with st.expander("Threshold sweep"):
+        kind = "warn" if sc["looks_random"] else "good"
+        st.markdown(f'<div class="qhero {kind}"><h3>{"Verdict: this dataset has no real bought-together pattern" if sc["looks_random"] else "Verdict: a real bought-together signal exists"}</h3>'
+                    f'<div>{esc(sc["verdict"])}</div><div class="meta" style="margin-top:8px">Most frequent item pair: {sc["observed_max_pair_count"]} orders. '
+                    f'The same baskets shuffled at random give {sc["shuffled_max_pair_count_range"][0]} to {sc["shuffled_max_pair_count_range"][1]}. '
+                    f'Unusual pairs: {sc["pairs_with_z_gt_3"]} (chance alone predicts {sc["pairs_with_z_gt_3_expected_by_chance"]}).</div></div>', unsafe_allow_html=True)
+
+    st.markdown('<div class="gap"></div>', unsafe_allow_html=True)
+    cols = st.columns(4)
+    with cols[0]:
+        theme.tile("Market-basket model", f"{100 * m[f'hit@{k}']:.1f}%", f"hit@{k} on all carts", T.BRAND)
+    with cols[1]:
+        theme.tile("Most popular items", f"{100 * pop[f'hit@{k}']:.1f}%", f"hit@{k} on all carts", T.MUTED)
+    with cols[2]:
+        theme.tile("Random items", f"{100 * rnd[f'hit@{k}']:.1f}%", f"hit@{k} on all carts", T.SUBTLE)
+    with cols[3]:
+        theme.tile("Carts answered", f"{100 * m['coverage']:.0f}%", "the rest correctly show nothing")
+
+    st.markdown('<div class="gap"></div>', unsafe_allow_html=True)
+    names = {"model": "Market-basket", "popularity": "Popular", "random": "Random"}
+    all_df = pd.DataFrame({"Method": [names[x] for x in names], "hit": [cv[x][f"hit@{k}"] for x in names]})
+    ci = pd.DataFrame({"Method": [names[x] for x in names], "low": [cv[x][f"hit@{k}_ci95"][0] for x in names], "high": [cv[x][f"hit@{k}_ci95"][1] for x in names]})
+    cov_names = {"model": "Market-basket", "popularity_on_model_covered_carts": "Popular (same carts)"}
+    cov_df = pd.DataFrame({"Method": list(cov_names.values()), "hit": [cv[x][f"hit@{k}_covered"] if x == "model" else cv[x][f"hit@{k}"] for x in cov_names]})
+    c1, c2 = st.columns(2, gap="large")
+    with c1:
+        st.altair_chart(_bar_chart(all_df, "hit", f"Hit@{k} on ALL carts (declining to answer counts as a miss)", ci), width="stretch")
+    with c2:
+        st.altair_chart(_bar_chart(cov_df, "hit", f"Hit@{k} on the carts the model DID answer", None), width="stretch")
+    lo, hi = m[f"hit@{k}_ci95"]
+    st.caption(f"A hit means a recommended item is bought later in the same order. Error bars are 95% confidence intervals (model: {100 * lo:.1f}% to {100 * hi:.1f}%). "
+               "Bars that overlap mean the difference is not meaningful.")
+
+    st.divider()
+    render_monitoring()
+    with st.expander("Detailed numbers and threshold sweep"):
+        rows = []
+        for key, label in {"model": "Market-basket model", "popularity": "Most popular items", "random": "Random items", "popularity_on_model_covered_carts": "Most popular (same carts the model answered)"}.items():
+            r = cv[key]
+            rows.append({"Method": label, "Coverage": r["coverage"], f"Hit@{k} (all carts)": r[f"hit@{k}"], f"Hit@{k} (answered carts)": r[f"hit@{k}_covered"],
+                         f"Precision@{k}": r[f"precision@{k}"], f"NDCG@{k}": r[f"ndcg@{k}"]})
+        fmt = {c: st.column_config.ProgressColumn(c, min_value=0, max_value=1, format="percent") for c in rows[0] if c not in ("Method", f"NDCG@{k}")}
+        st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch", column_config=fmt)
+        if res.get("sweep"):
             st.dataframe(pd.DataFrame(res["sweep"]), hide_index=True, width="stretch")
 
 
@@ -246,6 +319,7 @@ def render() -> None:
     from p4_eval_ui.ui import nav
 
     svc = get_service()
+    st.markdown('<div class="retail-root"></div>', unsafe_allow_html=True)
     nav.render_navbar("retail", show_eval=False)
     st.markdown('<div class="meta" style="margin:-.2rem 0 .6rem">Retail checkout · market-basket recommendations</div>', unsafe_allow_html=True)
     tabs = st.tabs(["Checkout", "Model quality"])
