@@ -23,7 +23,7 @@ def contrast(a, b):
 
 @pytest.mark.parametrize("path", [p for p in sorted(UI.glob("*.py")) if p.name != "tokens.py"], ids=lambda p: p.name)
 def test_no_hex_colours_outside_tokens(path):
-    stray = HEX.findall(path.read_text())
+    stray = HEX.findall(path.read_text(encoding='utf-8'))
     assert not stray, f"{path.name} hard-codes colours {stray}; add them to tokens.py or use var(--sd-*)"
 
 

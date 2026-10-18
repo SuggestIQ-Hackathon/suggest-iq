@@ -12,15 +12,79 @@ from p3_sec_csr.agents.evidence import (
     source_marker,
     uncertainty_for,
 )
+from p3_sec_csr.agents.query_normalization import normalize_query
 from p3_sec_csr.knowledge.csr_kb import CSRKB
-from p3_sec_csr.recommenders.strategy import recommend
+from p3_sec_csr.recommenders.strategy import TECHNOLOGY_INVESTMENT_TAG, recommend
 
 AVAILABLE_YEARS = {2023, 2024}
+CSR_QUERY_VOCABULARY = (
+    "food",
+    "security",
+    "sustainability",
+    "nutrition",
+    "malnutrition",
+    "agrifood",
+    "hunger",
+    "climate",
+    "resilience",
+    "affordability",
+    "emissions",
+    "carbon",
+    "technology",
+    "investment",
+)
+CSR_SCOPE_TERMS = (
+    "food",
+    "nutrition",
+    "malnutrition",
+    "hunger",
+    "sustainability",
+    "agrifood",
+    "agriculture",
+    "climate",
+    "diet",
+    "affordability",
+    "emission",
+    "carbon",
+    "esg",
+    "corporate responsibility",
+    "csr",
+)
+
+# The SOFI reports are not a source for general-world facts. These explicit
+# patterns prevent coincidental word matches (for example, a report discussion
+# of financial capital and a country name) from being presented as an answer.
+CSR_OUT_OF_SCOPE_PATTERNS = (
+    r"\bcapital of\b",
+    r"\bweather\b",
+    r"\bsports?\b",
+    r"\bpokemon\b",
+)
+
+CSR_TOPIC_STOPWORDS = {
+    "about",
+    "are",
+    "does",
+    "from",
+    "have",
+    "how",
+    "is",
+    "the",
+    "this",
+    "what",
+    "when",
+    "where",
+    "which",
+}
 
 
 def _expanded_query(query: str) -> str:
     lowered = query.lower()
     additions = []
+    if "food security" in lowered:
+        additions.append(
+            "food insecurity hunger malnutrition healthy diets nutrition agrifood"
+        )
     if "food insecurity" in lowered and any(
         term in lowered for term in ("reason", "driver", "cause")
     ):
@@ -77,6 +141,7 @@ class CSRAgent(BaseDomainAgent):
         return int(match.group(1)) if match else None
 
     def retrieve(self, query: str, k: int = 5) -> list[Hit]:
+        query = normalize_query(query, CSR_QUERY_VOCABULARY)
         year = self._requested_year(query)
         return self.kb.search(
             _expanded_query(query),
@@ -100,6 +165,14 @@ class CSRAgent(BaseDomainAgent):
         )
 
     @staticmethod
+    def _is_technology_investment_question(query: str) -> bool:
+        lowered = query.lower()
+        return "invest" in lowered and any(
+            term in lowered
+            for term in ("technology", "digital", "data", "infrastructure", "platform")
+        )
+
+    @staticmethod
     def _requests_company_esg_metric(query: str) -> bool:
         lowered = query.lower()
         metric_terms = (
@@ -114,8 +187,43 @@ class CSRAgent(BaseDomainAgent):
         )
         return any(term in lowered for term in metric_terms)
 
+    @staticmethod
+    def _is_in_scope(query: str) -> bool:
+        lowered = query.lower()
+        return any(term in lowered for term in CSR_SCOPE_TERMS)
+
+    def _has_grounded_topic(self, query: str) -> bool:
+        """Allow a copied SOFI heading when its meaningful words co-occur in evidence."""
+        lowered = query.lower()
+        if any(re.search(pattern, lowered) for pattern in CSR_OUT_OF_SCOPE_PATTERNS):
+            return False
+        terms = {
+            token
+            for token in re.findall(r"[a-z0-9]+", lowered)
+            if len(token) > 3 and token not in CSR_TOPIC_STOPWORDS
+        }
+        if not terms:
+            return False
+        for hit in self.kb.search(query, k=5):
+            evidence_terms = set(re.findall(r"[a-z0-9]+", hit.chunk.text.lower()))
+            if terms.issubset(evidence_terms):
+                return True
+        return False
+
+    def _out_of_scope_response(self) -> DomainResponse:
+        return DomainResponse(
+            domain=self.domain,
+            status="ANALYSIS_COMPLETE",
+            findings_summary=(
+                "The local SOFI corpus covers food security, nutrition, sustainability, "
+                "and agrifood systems. It does not support this unrelated question."
+            ),
+            uncertainty_level="HIGH",
+        )
+
     def run(self, query: str, context: Context = None) -> DomainResponse:
         try:
+            query = normalize_query(query, CSR_QUERY_VOCABULARY)
             if not query.strip():
                 return DomainResponse(
                     domain=self.domain,
@@ -126,19 +234,6 @@ class CSRAgent(BaseDomainAgent):
                     ],
                     uncertainty_level="HIGH",
                 )
-            year = self._requested_year(query)
-            if year is not None and year not in AVAILABLE_YEARS:
-                coverage_hits = self.kb.search(
-                    "State of Food Security and Nutrition report", k=2
-                )
-                return DomainResponse(
-                    domain=self.domain,
-                    status="ANALYSIS_COMPLETE",
-                    findings_summary=f"The local SOFI corpus does not contain a {year} report; only 2023 and 2024 are available.",
-                    citations=hits_to_citations(coverage_hits),
-                    uncertainty_level="HIGH",
-                )
-
             if self._requests_company_esg_metric(query):
                 coverage_hits = self.kb.search(
                     "food security sustainability report scope and indicators", k=2
@@ -151,6 +246,20 @@ class CSRAgent(BaseDomainAgent):
                         "company-level emissions or ESG metric for this request. A corporate "
                         "sustainability filing or verified emissions inventory is required."
                     ),
+                    citations=hits_to_citations(coverage_hits),
+                    uncertainty_level="HIGH",
+                )
+            if not self._is_in_scope(query) and not self._has_grounded_topic(query):
+                return self._out_of_scope_response()
+            year = self._requested_year(query)
+            if year is not None and year not in AVAILABLE_YEARS:
+                coverage_hits = self.kb.search(
+                    "State of Food Security and Nutrition report", k=2
+                )
+                return DomainResponse(
+                    domain=self.domain,
+                    status="ANALYSIS_COMPLETE",
+                    findings_summary=f"The local SOFI corpus does not contain a {year} report; only 2023 and 2024 are available.",
                     citations=hits_to_citations(coverage_hits),
                     uncertainty_level="HIGH",
                 )
@@ -176,7 +285,15 @@ class CSRAgent(BaseDomainAgent):
             prefix = f"SOFI {year} evidence" if year else "SOFI evidence"
             recommendations = (
                 anchor_recommendations(
-                    recommend(" ".join(hit.chunk.text for hit in hits), top_k=3),
+                    recommend(
+                        " ".join(hit.chunk.text for hit in hits),
+                        top_k=3,
+                        required_tag=(
+                            TECHNOLOGY_INVESTMENT_TAG
+                            if self._is_technology_investment_question(query)
+                            else None
+                        ),
+                    ),
                     hits,
                 )
                 if self._is_investment_question(query)

@@ -19,7 +19,7 @@ import streamlit.components.v1 as components  # noqa: E402
 from core import llm, registry  # noqa: E402
 from p4_eval_ui.evaluation import benchmark  # noqa: E402
 from p4_eval_ui.evaluation.explain import explain  # noqa: E402
-from p4_eval_ui.ui import theme  # noqa: E402
+from p4_eval_ui.ui import nav, theme  # noqa: E402
 from p4_eval_ui.ui import tokens as T  # noqa: E402
 from p4_eval_ui.ui.flow import build_flow_html  # noqa: E402
 
@@ -54,7 +54,7 @@ def _examples():
     items = {i["id"]: i["query"] for i in json.loads((REPO_ROOT / "core" / "fixtures" / "benchmark_queries.json").read_text())}
     return [
         ("Failing Cisco router", BRIEF_EXAMPLE, ""),
-        ("Same, with logs attached", BRIEF_WITH_MODEL, DIAG_EXAMPLE),
+        ("With logs attached", BRIEF_WITH_MODEL, DIAG_EXAMPLE),
         ("Pathology scanner", items["Q07"], ""),
         ("Cisco risk factors", items["Q11"], ""),
         ("Food insecurity in 2023", items["Q16"], ""),
@@ -145,17 +145,27 @@ def _show(view: str) -> None:
     st.session_state["view"] = view
 
 
+CHIP_ICONS = {"Failing Cisco router": ":material/router:", "With logs attached": ":material/attach_file:", "Pathology scanner": ":material/biotech:",
+              "Cisco risk factors": ":material/gavel:", "Food insecurity in 2023": ":material/restaurant:", "Cross-domain example": ":material/hub:"}
+
+
 def render_home(manager) -> None:
+    nav.render_navbar("consult")
     _, mid, _ = st.columns([1, 3, 1])
     with mid:
-        theme.brand_home()
+        st.markdown('<div class="headline">Guiding enterprises from <em>questions</em> to <em>decisions</em></div>'
+                    '<div class="subline">Ask a business question. Suggest IQ routes it to specialist agents and answers with cited evidence.</div>',
+                    unsafe_allow_html=True)
         with st.form("ask", border=True):
             st.text_area("Ask a business question", key="query", height=110, label_visibility="collapsed",
                          placeholder="Ask a business question, e.g. which parts should we order for our failing Cisco router?")
-            with st.expander("Attach logs or telemetry (optional)"):
+            with st.expander("Attach logs or telemetry (optional)", icon=":material/attach_file:"):
                 st.text_area("Diagnostics", key="diagnostics", height=100, label_visibility="collapsed",
                              placeholder="Paste show tech-support output, error codes, versions...")
-            go = st.form_submit_button("Ask Suggest IQ", disabled=manager is None)
+            foot = st.columns([3, 1.3], vertical_alignment="center")
+            foot[0].caption("Press Ctrl + Enter to ask")
+            with foot[1]:
+                go = st.form_submit_button("Ask Suggest IQ", disabled=manager is None)
         if go:
             q = (st.session_state.get("query") or "").strip()
             if q:
@@ -164,29 +174,23 @@ def render_home(manager) -> None:
                     st.rerun()
             else:
                 st.warning("Type a question first.")
-        st.markdown('<div class="chiprow">', unsafe_allow_html=True)
+        st.markdown('<div class="eyebrow">Try an example</div><div class="chiprow">', unsafe_allow_html=True)
         examples = _examples()
         for row in range(0, len(examples), 3):
             cols = st.columns(3)
             for col, (label, text, diag) in zip(cols, examples[row:row + 3]):
-                col.button(label, key=f"ex_{label}", on_click=_queue, args=(text, diag), width="stretch")
+                col.button(label, key=f"ex_{label}", icon=CHIP_ICONS.get(label), on_click=_queue, args=(text, diag), width="stretch")
         st.markdown('</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="foot">Answers cite their sources. Mode: {esc(llm.llm_mode())} · agents: {esc(os.getenv("REAL_DOMAINS", "auto"))}</div>', unsafe_allow_html=True)
-        c = st.columns([2, 3, 2])
-        c[1].button("See how we measure quality", key="to_eval", on_click=_show, args=("eval",), type="tertiary", width="stretch")
+        st.markdown('<div class="trust"><span>Every claim is cited</span><span>Never guesses a fault</span><span>Scored on 37 test questions</span></div>',
+                    unsafe_allow_html=True)
 
 
 def render_topbar(show_new: bool = True) -> None:
-    c = st.columns([5, 1.4])
-    with c[0]:
-        theme.brand_small()
-    if show_new:
-        c[1].button("New question", key="new_q", on_click=_new_question, width="stretch")
+    nav.render_navbar("consult", action=("New question", ":material/add:", _new_question) if show_new else None)
 
 
 def render_eval_page(manager) -> None:
-    render_topbar(show_new=False)
-    st.button("← Back", key="back", on_click=_new_question)
+    nav.render_navbar("eval")
     st.subheader("Evaluation")
     render_evaluation(manager)
 
@@ -194,14 +198,12 @@ def render_eval_page(manager) -> None:
 def render_results(manager, report) -> None:
     render_topbar()
     st.markdown(f'<div class="ask">{esc(report.query)}</div>', unsafe_allow_html=True)
-    tabs = st.tabs(["Answer", "Evidence", "Evaluation", "Trace"])
+    tabs = st.tabs(["Answer", "Evidence", "Trace"])  # Evaluation lives in the navbar so it is one click from every screen
     with tabs[0]:
         render_answer(manager, report)
     with tabs[1]:
         render_evidence()
     with tabs[2]:
-        render_evaluation(manager)
-    with tabs[3]:
         render_trace()
 
 
@@ -436,6 +438,17 @@ def render_evaluation(manager) -> None:
 def main() -> None:
     st.set_page_config(page_title="Suggest IQ", page_icon="💡", layout="wide", initial_sidebar_state="collapsed")
     theme.inject_css()
+    if st.query_params.get("app") == "retail" and "retail_deeplinked" not in st.session_state:  # ?app=retail&cart=SKU1,SKU2 opens the checkout directly
+        st.session_state["retail_deeplinked"] = True
+        st.session_state["app"] = "retail"
+        cart = [c for c in (st.query_params.get("cart") or "").split(",") if c]
+        if cart:
+            st.session_state["retail_cart"] = cart
+    if st.session_state.get("app") == "retail":  # the home-page toggle switches the whole app to the retail checkout
+        from retail_basket import ui as retail_ui
+
+        retail_ui.render()
+        return
     manager = get_manager()
     demo = st.query_params.get("demo")  # ?demo=cisco or ?demo=cisco-diag preloads a run (handy for demos and screenshots)
     if demo and manager is not None and "report" not in st.session_state and "demo_done" not in st.session_state:

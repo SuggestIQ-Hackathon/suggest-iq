@@ -9,6 +9,7 @@
     "feasibility": 3,
     "evidence_keywords": ["agriculture", "climate", "productivity", "rural"],
     "source_hint": "SOFI climate and agrifood-system evidence",
+    "intent_tags": ["technology_investment"],
     "assumptions": ["Assumes farmers have connectivity, training, and maintenance support."]
   },
   {
@@ -21,6 +22,7 @@
     "feasibility": 4,
     "evidence_keywords": ["food loss", "storage", "transport", "nutrition"],
     "source_hint": "SOFI food access and agrifood-system evidence",
+    "intent_tags": ["technology_investment"],
     "assumptions": ["Assumes dependable power, logistics partners, and operating funding."]
   },
   {
@@ -33,6 +35,7 @@
     "feasibility": 4,
     "evidence_keywords": ["supply chain", "traceability", "disruption", "access"],
     "source_hint": "SEC supply-chain risks and SOFI food-access evidence",
+    "intent_tags": ["technology_investment"],
     "assumptions": ["Assumes suppliers will provide consistent and interoperable data."]
   },
   {
@@ -45,6 +48,7 @@
     "feasibility": 3,
     "evidence_keywords": ["climate", "shock", "resilience", "infrastructure"],
     "source_hint": "SOFI climate-shock evidence",
+    "intent_tags": ["technology_investment"],
     "assumptions": ["Assumes local power resilience and lifecycle support are included."]
   },
   {
@@ -57,6 +61,7 @@
     "feasibility": 4,
     "evidence_keywords": ["energy", "sustainability", "infrastructure", "cost"],
     "source_hint": "Sustainability and operating-cost themes",
+    "intent_tags": ["technology_investment"],
     "assumptions": ["Assumes measured baseline energy use and responsible equipment disposal."]
   },
   {
@@ -69,6 +74,7 @@
     "feasibility": 3,
     "evidence_keywords": ["malnutrition", "nutrition", "health", "children"],
     "source_hint": "SOFI malnutrition evidence",
+    "intent_tags": ["technology_investment"],
     "assumptions": ["Assumes clinical governance, trained staff, referral capacity, and validated instruments."]
   },
   {
@@ -81,6 +87,7 @@
     "feasibility": 4,
     "evidence_keywords": ["supplier", "components", "supply chain", "availability"],
     "source_hint": "SEC Item 1A supply-chain risk evidence",
+    "intent_tags": [],
     "assumptions": ["Assumes alternatives pass quality, security, and compliance due diligence."]
   },
   {
@@ -93,6 +100,7 @@
     "feasibility": 5,
     "evidence_keywords": ["conflict", "climate", "prices", "disruption", "risk"],
     "source_hint": "SOFI drivers and SEC risk-factor evidence",
+    "intent_tags": [],
     "assumptions": ["Assumes accountable owners review indicators and exercise response plans."]
   },
   {
@@ -105,6 +113,7 @@
     "feasibility": 3,
     "evidence_keywords": ["affordability", "prices", "healthy diet", "access"],
     "source_hint": "SOFI affordability and food-price evidence",
+    "intent_tags": [],
     "assumptions": ["Assumes privacy-preserving data and validated eligibility rules."]
   },
   {
@@ -117,6 +126,7 @@
     "feasibility": 4,
     "evidence_keywords": ["food insecurity", "climate", "prices", "monitoring"],
     "source_hint": "SOFI food-security drivers and monitoring evidence",
+    "intent_tags": ["technology_investment"],
     "assumptions": ["Assumes timely data feeds and agreed escalation thresholds."]
   },
   {
@@ -129,6 +139,7 @@
     "feasibility": 5,
     "evidence_keywords": ["regulatory", "compliance", "financial", "due diligence"],
     "source_hint": "SEC regulatory and operational risk evidence",
+    "intent_tags": [],
     "assumptions": ["Assumes risk owners maintain evidence and reassess material changes."]
   },
   {
@@ -141,6 +152,7 @@
     "feasibility": 3,
     "evidence_keywords": ["rural", "urban", "markets", "supply", "resilience"],
     "source_hint": "SOFI rural-urban continuum and market-access evidence",
+    "intent_tags": [],
     "assumptions": ["Assumes local suppliers meet quality, capacity, and compliance requirements."]
   }
 ]

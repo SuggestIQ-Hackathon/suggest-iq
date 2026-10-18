@@ -71,7 +71,8 @@ def _terms(value: str) -> set[str]:
 
 def _has_term(query: str, terms: tuple[str, ...]) -> bool:
     lowered = str(query or "").lower()
-    return any(term in lowered for term in terms)
+    norm = re.sub(r"[-_]+", " ", lowered)
+    return any(term in lowered or term in norm for term in terms)
 
 
 def _is_medical_query(query: str) -> bool:
@@ -118,8 +119,9 @@ def _is_literature_question(query: str) -> bool:
 
 def _topic_for_query(query: str) -> tuple[str, ...]:
     lowered = str(query or "").lower()
+    norm = re.sub(r"[-_]+", " ", lowered)
     for topic, aliases in _TOPIC_ALIASES.items():
-        if topic in lowered:
+        if topic in lowered or topic in norm:
             return aliases
     return ()
 
