@@ -1,2 +1,1 @@
-# Required by pypdf to decode embedded CFF Type1 fonts in the SOFI reports.
-fonttools>=4.60
+# Extra dependencies owned by p3_sec_csr only. One per line.
