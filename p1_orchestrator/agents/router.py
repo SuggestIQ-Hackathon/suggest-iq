@@ -24,11 +24,11 @@ _TECH_COMPANY_PATTERNS = [
 _CLINICAL_INSTRUMENT_PATTERNS = [
     r"\b(?:seahorse|nanozoomer|artisan)\b",
     r"\b(?:pathology|whole-slide\s*imaging|special\s*stains)\b",
-    r"\b(?:clinical\s*(?:trial|trials|literature|data)?)\b",
+    r"\b(?:clinical\s*(?:trial|trials|literature|data|research)?)\b",
     r"\b(?:metabolic\s*analysis|live\s*cells|diagnostic\s*(?:instrument|instruments|lab|equipment))\b",
-    r"\b(?:heart\s*attacks?|type\s*2\s*diabetes|patient|cardiac)\b",
+    r"\b(?:heart[- ]*attacks?|heart[- ]*disease|diabetes|glycemic|patient|cardiac)\b",
     r"\b(?:covid(?:-19)?|coronavirus|sars-cov-2|lung(?:-image)?|pulmonary|respiratory|radiograph|x-ray|chest)\b",
-    r"\b(?:knee\s*(?:injuries?|injury)?|orthopedic)\b",
+    r"\b(?:knee[- ]*(?:injuries?|injury)?|orthopedic|biomarkers?|pathogenesis|genetics?)\b",
 ]
 
 _CLINICAL_COMPANY_PATTERNS = [
