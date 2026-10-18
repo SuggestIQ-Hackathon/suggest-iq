@@ -13,7 +13,7 @@ from p3_sec_csr.agents.evidence import (
     uncertainty_for,
 )
 from p3_sec_csr.knowledge.csr_kb import CSRKB
-from p3_sec_csr.recommenders.strategy import recommend
+from p3_sec_csr.recommenders.strategy import TECHNOLOGY_INVESTMENT_TAG, recommend
 
 AVAILABLE_YEARS = {2023, 2024}
 
@@ -100,6 +100,14 @@ class CSRAgent(BaseDomainAgent):
         )
 
     @staticmethod
+    def _is_technology_investment_question(query: str) -> bool:
+        lowered = query.lower()
+        return "invest" in lowered and any(
+            term in lowered
+            for term in ("technology", "digital", "data", "infrastructure", "platform")
+        )
+
+    @staticmethod
     def _requests_company_esg_metric(query: str) -> bool:
         lowered = query.lower()
         metric_terms = (
@@ -176,7 +184,15 @@ class CSRAgent(BaseDomainAgent):
             prefix = f"SOFI {year} evidence" if year else "SOFI evidence"
             recommendations = (
                 anchor_recommendations(
-                    recommend(" ".join(hit.chunk.text for hit in hits), top_k=3),
+                    recommend(
+                        " ".join(hit.chunk.text for hit in hits),
+                        top_k=3,
+                        required_tag=(
+                            TECHNOLOGY_INVESTMENT_TAG
+                            if self._is_technology_investment_question(query)
+                            else None
+                        ),
+                    ),
                     hits,
                 )
                 if self._is_investment_question(query)

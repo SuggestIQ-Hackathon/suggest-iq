@@ -126,6 +126,16 @@ def test_sec_agent_labels_out_of_corpus_entity_high_uncertainty():
     assert all(citation.snippet.startswith('"company":') for citation in response.citations)
 
 
+def test_sec_agent_abstains_from_current_market_data_requests():
+    agent = SECAgent()
+    agent.kb = StubSECKB()
+    response = agent.run("What is Cisco stock price today?")
+    assert response.status == "ANALYSIS_COMPLETE"
+    assert response.uncertainty_level == "HIGH"
+    assert "does not support current market-data" in response.findings_summary
+    assert not response.recommendations
+
+
 def test_sec_agent_abstains_when_requested_metric_is_not_in_evidence():
     agent = SECAgent()
     agent.kb = StubSECKB()
@@ -148,6 +158,9 @@ def test_csr_agent_filters_year_and_adds_investment_recommendations():
     assert all(
         "Evidence source:" in (recommendation.compatibility_notes or "")
         for recommendation in response.recommendations
+    )
+    assert {recommendation.item_id for recommendation in response.recommendations}.isdisjoint(
+        {"STRAT-SCENARIO-PLANNING", "STRAT-PARTNER-DUE-DILIGENCE"}
     )
     assert "[SOFI-2023.pdf" in response.findings_summary
 

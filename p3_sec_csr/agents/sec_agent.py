@@ -22,6 +22,41 @@ COMPANY_ALIASES = {
     "google": "Alphabet",
 }
 
+# Questions about a company's current market position require live market data,
+# which is intentionally outside this filing-only agent's approved corpus.
+OUT_OF_SCOPE_PATTERNS = (
+    r"\bstock price\b",
+    r"\bshare price\b",
+    r"\bmarket cap(?:italization)?\b",
+    r"\bcurrent price\b",
+    r"\btoday'?s price\b",
+    r"\breal[ -]?time\b",
+    r"\blatest news\b",
+    r"\banalyst rating\b",
+)
+
+SEC_ANALYSIS_TERMS = (
+    "annual report",
+    "annual filing",
+    "10-k",
+    "sec filing",
+    "filing",
+    "risk",
+    "supply chain",
+    "supply-chain",
+    "competitive",
+    "competition",
+    "regulatory",
+    "operational",
+    "operations",
+    "revenue",
+    "gross margin",
+    "income",
+    "financial",
+    "compare",
+    "comparison",
+)
+
 
 def _unique_citations(citations: list[Citation]) -> list[Citation]:
     seen = set()
@@ -109,6 +144,28 @@ class SECAgent(BaseDomainAgent):
             for entry in self.kb.manifest
         )
 
+    @staticmethod
+    def _is_in_scope(query: str) -> bool:
+        """Return whether a question can be grounded in the local SEC filings."""
+        lowered = query.lower()
+        if any(re.search(pattern, lowered) for pattern in OUT_OF_SCOPE_PATTERNS):
+            return False
+        return any(term in lowered for term in SEC_ANALYSIS_TERMS)
+
+    def _out_of_scope_response(self, companies: list[str]) -> DomainResponse:
+        company_names = ", ".join(companies)
+        return DomainResponse(
+            domain=self.domain,
+            status="ANALYSIS_COMPLETE",
+            findings_summary=(
+                f"The local SEC filing corpus does not support current market-data or "
+                f"other out-of-scope questions about {company_names}. It can answer "
+                "grounded questions about annual-filing risks, financial metrics, and comparisons."
+            ),
+            citations=self._coverage_citations(companies),
+            uncertainty_level="HIGH",
+        )
+
     def retrieve(self, query: str, k: int = 5) -> list[Hit]:
         companies = self._companies(query, None)
         company = companies[0] if len(companies) == 1 else None
@@ -192,6 +249,9 @@ class SECAgent(BaseDomainAgent):
                     citations=self._coverage_citations(),
                     uncertainty_level="HIGH",
                 )
+
+            if not self._is_in_scope(query):
+                return self._out_of_scope_response(companies)
 
             lowered = query.lower()
             financial = any(
