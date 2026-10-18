@@ -135,6 +135,10 @@ div[data-testid="stColumn"]:has(.cart-anchor){position:sticky;top:14px;align-sel
 [class*="st-key-add_"] button{width:44px;height:44px;min-height:0;border-radius:50%!important;padding:0!important;box-shadow:var(--sd-shadow-sm)}
 [class*="st-key-add_"] button:hover{transform:scale(1.07)}
 [class*="st-key-add_"] [data-testid="stIconMaterial"]{font-size:1.35rem}
+/* in-cart state: green check, green outline; hover reveals that a click removes it */
+.pcard.incart{border:2px solid var(--sd-success);padding:11px 11px 9px;padding-bottom:57px}
+[class*="st-key-add_"] button[kind="secondary"]{background:var(--sd-success)!important;color:var(--sd-on-brand)!important;border:0!important}
+[class*="st-key-add_"] button[kind="secondary"]:hover{background:var(--sd-danger)!important}
 """
 CSS = f"<style>{CSS}</style>"
 
