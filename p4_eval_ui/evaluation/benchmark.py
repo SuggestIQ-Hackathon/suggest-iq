@@ -106,6 +106,7 @@ def run_benchmark(
         pred = {d.value if hasattr(d, "value") else str(d) for d in routing.get("domains", [])}
         predicted.append(pred)
         expected.append(set(item["expected_domains"]))
+        row["fallbacks"] = len(trace.get("fallbacks_used") or [])
         row.update(predicted_domains=sorted(pred), routing_exact=pred == set(item["expected_domains"]),
                    routing_confidence=routing.get("confidence"), latency_ms=trace.get("total_ms"))
         for d, a in (trace.get("agents") or {}).items():
@@ -199,6 +200,7 @@ def run_benchmark(
         "latency_ms_p95": latencies[min(len(latencies) - 1, int(0.95 * len(latencies)))] if latencies else None,
         "uncertainty_distribution": unc,
         "errors": sum(1 for r in per_query if r["error"]),
+        "queries_with_fallback": sum(1 for r in per_query if r.get("fallbacks")),
         "calibration": calibration_table(per_query),
         "per_query": per_query,
     }
@@ -242,6 +244,9 @@ def format_scorecard(res: Dict[str, Any]) -> str:
         f"  Latency p50 / p95 (ms)          {res['latency_ms_p50']} / {res['latency_ms_p95']}",
         f"  Errors                          {res['errors']}",
     ]
+    if res.get("llm_mode") == "live" and res.get("queries_with_fallback"):
+        lines.append(f"  WARNING: {res['queries_with_fallback']} of {res['n_queries']} queries fell back to rules because the LLM call failed "
+                     "(rate limit or outage). This is NOT a clean live run.")
     if any(s != "real" for s in res["agents_real"].values()):
         lines.append("  NOTE: some domain agents are MOCKS; retrieval/faithfulness/recommendation numbers are not meaningful yet.")
     return "\n".join(lines)

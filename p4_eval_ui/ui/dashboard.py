@@ -233,6 +233,12 @@ def render_answer(manager, report) -> None:
     label, sub, color = answer_status(statuses)
     conf = view.overall_confidence.replace(" (provisional)", "")
 
+    # 0. be explicit when the live language model failed and built-in rules answered instead
+    fallbacks = report.audit_trace.get("fallbacks_used") or []
+    if fallbacks:
+        st.warning("The language model was unavailable for part of this answer, so built-in keyword rules were used instead "
+                   f"({esc(str(fallbacks[0]))[:160]}). Results may be less accurate; try again later or check the API quota.")
+
     # 1. one-line trust strip (status, confidence, evidence, who answered)
     agents = " ".join(theme.domain_pill(d.value) for d in report.detected_domains)
     st.markdown(f'<div class="strip">{theme.pill(label + ": " + sub, color)}{theme.pill("Confidence " + conf, T.BUCKET_COLOR.get(conf, T.MUTED))}'
