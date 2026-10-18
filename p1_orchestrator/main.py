@@ -11,6 +11,10 @@ from core.registry import load_manager
 
 
 def main():
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
     parser = argparse.ArgumentParser(description="SpartanConsult / SuggestIQ Management Consulting Platform")
     parser.add_argument("query", help="Enterprise customer query")
     parser.add_argument("--json", action="store_true", help="Output full ConsultingReport as JSON")
@@ -63,7 +67,7 @@ def main():
             print("Citations:")
             for cite in resp.citations:
                 page_str = f" p.{cite.page}" if cite.page else ""
-                print(f"  • [{cite.source_doc}{page_str}] \"{cite.snippet[:80]}...\"")
+                print(f"  * [{cite.source_doc}{page_str}] \"{cite.snippet[:80]}...\"")
 
     print("-" * 80)
     print("RECOMMENDED ACTIONS:")
@@ -83,7 +87,7 @@ def main():
     print("-" * 80)
     print("MEASURABLE IMPACT KPIS:")
     for kpi in report.measuring_impact_kpis:
-        print(f"• {kpi}")
+        print(f"* {kpi}")
 
     print("=" * 80)
 
