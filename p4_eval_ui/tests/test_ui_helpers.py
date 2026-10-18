@@ -1,6 +1,6 @@
 from p4_eval_ui.ui import theme
 from p4_eval_ui.ui import tokens as T
-from p4_eval_ui.ui.dashboard import SUMMARY_PREFIX, trim_summary
+from p4_eval_ui.ui.dashboard import SUMMARY_PREFIX, answer_status, split_rationale, trim_summary
 from p4_eval_ui.ui.flow import build_flow_html
 
 
@@ -29,3 +29,24 @@ def test_path_ribbon_lists_routed_domains_with_status_colour():
 def test_flow_html_has_controls_and_theme_ink():
     light, dark = build_flow_html(None, dark=False), build_flow_html(None, dark=True)
     assert 'id="pp"' in light and "pauseAnimations" in light and T.INK in light and T.INK_ON_DARK in dark
+
+
+def test_answer_status_never_calls_a_hypothesis_complete():
+    assert answer_status(["HYPOTHESIS"])[0] == "Hypothesis"
+    assert answer_status(["ANALYSIS_COMPLETE", "HYPOTHESIS"])[0] == "Hypothesis"
+    assert answer_status(["ANALYSIS_COMPLETE", "INFORMATION_REQUEST"])[0] == "Provisional"
+    assert answer_status(["CONFIRMED_FAULT"])[0] == "Fault confirmed"
+    assert answer_status(["ANALYSIS_COMPLETE"])[0] == "Complete"
+
+
+def test_scoring_formula_is_moved_out_of_the_rationale():
+    friendly, details = split_rationale("Score 0.17 = similarity 0.17, symptom match 0.00. Catalog entry is unverified.")
+    assert "Score" not in friendly and details.startswith("Score")
+    assert split_rationale("Power supply 1 reports FAILED.") == ("Power supply 1 reports FAILED.", None)
+
+
+def test_flow_caption_mentions_mock_only_when_mock():
+    real = {"routing": {"domains": ["technology"]}, "agents": {"technology": {"real_or_mock": "real", "status": "HYPOTHESIS"}}, "total_ms": 1, "mode": "mock"}
+    mock = {"routing": {"domains": ["technology"]}, "agents": {"technology": {"real_or_mock": "mock", "status": "HYPOTHESIS"}}, "total_ms": 1, "mode": "mock"}
+    assert "mock agents" not in build_flow_html(real, dark=False).split("<figcaption>")[1]
+    assert "mock agents" in build_flow_html(mock, dark=False).split("<figcaption>")[1]

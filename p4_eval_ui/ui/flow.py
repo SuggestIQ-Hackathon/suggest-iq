@@ -151,8 +151,9 @@ def build_flow_html(trace: Optional[Dict[str, Any]] = None, dark: Optional[bool]
         caption = "Idle view: every agent is shown. Run a consultation to see the real path your question took."
     else:
         names = ", ".join(d.replace("_", " ") for d in routed) or "no agent"
-        caption = (f"Your question went to {names} in parallel (total {trace.get('total_ms', '?')} ms, mode {trace.get('mode', '?')}); "
-                   "dot colour on the way back = that agent's status. Dashed boxes are mock agents.")
+        any_mock = any(a.get("real_or_mock") == "mock" for a in agents.values())
+        caption = (f"Your question went to {names} in parallel (total {trace.get('total_ms', '?')} ms, LLM mode {trace.get('mode', '?')}); "
+                   "dot colour on the way back = that agent's status." + (" Dashed boxes are mock agents." if any_mock else ""))
     legend = "".join(f'<span class="k"><i style="background:{c}"></i>{escape(s.replace("_", " ").title())}</span>' for s, c in STATUS_COLOR.items())
     aria = escape(caption)
     media = "@media (prefers-color-scheme: dark){html,body{color:" + T.INK_ON_DARK + "}}" if dark is None else ""

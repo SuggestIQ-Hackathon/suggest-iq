@@ -77,3 +77,17 @@ def test_crashing_manager_is_recorded_not_raised(tmp_path):
     qp, gp = _write(tmp_path)
     res = benchmark.run_benchmark(Boom(), qp, gold_path=gp)
     assert res["errors"] == 2 and res["per_query"][0]["error"].startswith("RuntimeError")
+
+
+def test_fallbacks_are_counted_and_flagged(tmp_path, monkeypatch):
+    class FlakyLive(StubManager):
+        def handle(self, query, context=None):
+            r = super().handle(query, context)
+            r.audit_trace["fallbacks_used"] = ["[Fallback to rules: RateLimitError] x"]
+            return r
+
+    qp, gp = _write(tmp_path)
+    monkeypatch.setenv("LLM_MODE", "live")
+    res = benchmark.run_benchmark(FlakyLive(), qp, gold_path=gp)
+    assert res["queries_with_fallback"] == 2
+    assert "NOT a clean live run" in benchmark.format_scorecard(res)
