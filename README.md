@@ -23,3 +23,31 @@ Agents talk to each other through `questions/` (one file per question, addressed
 
 Using an AI coding agent? Point it at `AGENTS.md` (Codex/Antigravity/Claude read it automatically; Cursor uses `.cursor/rules/common.mdc`).
 `resources/` is read-only input data. `Clinical.zip` (52 MB) and `FoodSecurity.zip` (17 MB) are git-ignored because they are heavy: get them from the team drive and place them in `resources/`. All other resource files are tracked.
+
+
+## Hosting (Docker)
+
+The whole app (consulting agents, retail checkout, dashboard) runs from one container. All search indexes are **built inside the image** from `resources/`
+(offline, about a minute), so nothing is downloaded when the container starts.
+
+```bash
+make data-check                      # optional: verify data/ is complete locally (python scripts/prepare_data.py --check)
+make docker-build                    # docker build -t suggest-iq .
+make docker-run                      # http://localhost:8501  (mock LLM unless .env sets LLM_MODE=live)
+```
+
+| Environment variable | Default in the image | Notes |
+|---|---|---|
+| `LLM_MODE` | `mock` | `live` makes real model calls (needs a provider key). Without a key the app still runs with built-in rules. |
+| `LLM_MODEL` | provider default | e.g. `gemini/gemini-3.1-flash-lite` |
+| `GEMINI_API_KEY` / `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` | none | set as a **host secret**, never in the image or git |
+| `REAL_DOMAINS` | `all` | use the four real agents |
+| `PORT` | `8501` | hosts such as Render and Cloud Run set this for you |
+| `RETAIL_ORDERS_LOG` | `/app/data/retail/orders_log.jsonl` | mount a volume at `/app/data/retail` to keep demo orders across restarts |
+
+Notes for hosting platforms
+- The app is a long-running Streamlit server with WebSockets and per-user session state in memory: run **one instance** (or enable session affinity).
+- Memory: about 350 MB in use with every agent and the retail model loaded, so a 1 GB instance is enough.
+- Health check: `/_stcore/health`.
+- Updating data: replace files in `resources/`, run `make docker-build`, redeploy. The retail order log is the only data written at run time.
+- A free Gemini key allows about 20 requests per model per day. For a public demo use a billed key, or leave `LLM_MODE=mock`.
