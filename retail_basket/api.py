@@ -4,7 +4,8 @@ POST /recommend  {"cart": ["D7050", "Bosch DS160 Detector"], "k": 5}   -> ranked
                  status "no_pattern" with an empty list when the cart combination has no reliable history (nothing irrelevant is shown)
 GET  /items      product catalog          GET /health  liveness + model version
 GET  /metrics    request count, no-pattern rate, latency (monitoring)
-POST /retrain    reload the orders CSV and refit (periodic retraining)
+POST /orders     record a completed order (learned at the next retrain)
+POST /retrain    reload the orders CSV plus logged orders and refit (periodic retraining)
 """
 from typing import List, Optional
 
@@ -68,6 +69,22 @@ def recommend(req: RecommendRequest):
         status=result.status, message=result.message, cart=skus,
         recommendations=[RecommendationOut(sku=r.sku, name=svc.catalog[r.sku].name, confidence=round(r.confidence, 4), lift=round(r.lift, 3),
                                            orders_with_both=r.count, orders_with_cart=r.cart_support, reason=r.reason()) for r in result.recs])
+
+
+class OrderRequest(BaseModel):
+    cart: List[str] = Field(..., min_length=2, description="SKUs or names of the items in the completed order")
+
+
+@app.post("/orders")
+def place_order(req: OrderRequest):
+    """Record a completed order; it is learned from at the next POST /retrain."""
+    try:
+        skus = service().log_order(req.cart)
+    except KeyError as err:
+        raise HTTPException(status_code=422, detail=f"Unknown item: {err.args[0]}")
+    except ValueError as err:
+        raise HTTPException(status_code=422, detail=str(err))
+    return {"logged": skus, **service().info()}
 
 
 @app.get("/metrics")

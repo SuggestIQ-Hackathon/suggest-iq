@@ -19,11 +19,31 @@ CSV_NAME = "CMPE256_Hackathon_market_basket_analysis_Release.csv"
 _SKU = re.compile(r"\(SKU:\s*([^)]+?)\s*\)\s*$")
 
 
+CATEGORIES = ["Cameras", "Recorders", "Detectors", "Panels & kits", "Accessories"]
+
+
+def category_of(name: str) -> str:
+    """Shelf category inferred from the product name (the dataset has no category column)."""
+    n = name.lower()
+    if "camera" in n:
+        return "Cameras"
+    if "nvr" in n.replace("-", " ").split():
+        return "Recorders"
+    if any(k in n for k in ("detector base", "keypad", "wireless key", "wireless receiver")):
+        return "Accessories"
+    if "detector" in n:
+        return "Detectors"
+    if "control panel" in n or "alarm kit" in n:
+        return "Panels & kits"
+    return "Other"
+
+
 @dataclass(frozen=True)
 class Item:
     sku: str
     name: str  # full display name, e.g. "Bosch D7050 Detector"
     brand: str
+    category: str = ""
 
 
 def parse_item(raw: str) -> Item:
@@ -33,7 +53,7 @@ def parse_item(raw: str) -> Item:
     if not m:
         raise ValueError(f"item has no '(SKU: ...)' suffix: {raw!r}")
     name = raw[: m.start()].strip()
-    return Item(sku=m.group(1), name=name, brand=name.split()[0])
+    return Item(sku=m.group(1), name=name, brand=name.split()[0], category=category_of(name))
 
 
 def _find_csv() -> Optional[Path]:

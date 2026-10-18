@@ -67,3 +67,9 @@ def test_popularity_baseline_ranks_by_count_and_excludes_the_cart():
     pop = PopularityBaseline().fit(ORDERS)  # counts: A=8, B=8, C=2, D=2
     assert pop.recommend(["B"], k=2) == ["A", "C"]
     assert pop.recommend(["A", "B"], k=5) == ["C", "D"]
+
+
+def test_evidence_level_thresholds():
+    from retail_basket.model import evidence_level
+
+    assert [evidence_level(n) for n in (5, 9, 10, 24, 25, 90)] == ["limited", "limited", "moderate", "moderate", "strong", "strong"]

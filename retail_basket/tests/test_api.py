@@ -46,3 +46,12 @@ def test_metrics_track_usage_and_retrain_bumps_the_version(client):
     m = client.get("/metrics").json()
     assert m["requests"] == 2 and m["errors"] == 1 and m["avg_latency_ms"] >= 0
     assert client.post("/retrain").json()["model_version"] == m["model_version"] + 1
+
+
+def test_orders_endpoint_logs_and_retrain_learns(client):
+    before = client.get("/health").json()["n_orders"]
+    r = client.post("/orders", json={"cart": ["D7050", "DS160"]})
+    assert r.status_code == 200 and r.json()["logged"] == ["D7050", "DS160"] and r.json()["pending_orders"] == 1
+    assert client.post("/retrain").json()["n_orders"] == before + 1
+    assert client.post("/orders", json={"cart": ["D7050"]}).status_code == 422  # needs >= 2 items
+    assert client.post("/orders", json={"cart": ["D7050", "NOPE"]}).status_code == 422

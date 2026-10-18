@@ -19,6 +19,11 @@ from itertools import combinations
 from typing import Dict, FrozenSet, Iterable, List, Optional, Sequence, Set
 
 
+def evidence_level(cart_support: int) -> str:
+    """How much history stands behind a recommendation. Small samples can show large lifts by chance, so the UI says so."""
+    return "limited" if cart_support < 10 else "moderate" if cart_support < 25 else "strong"
+
+
 @dataclass
 class Rec:
     sku: str

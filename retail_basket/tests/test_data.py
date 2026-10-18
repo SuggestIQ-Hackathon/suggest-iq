@@ -20,3 +20,15 @@ def test_real_dataset_shape():
     assert {len(b) for b in baskets} == {2, 3, 4, 5}
     assert all(len(b) == len(set(b)) for b in baskets)  # no item twice in one order
     assert all(sku in catalog for b in baskets for sku in b)
+
+
+def test_categories_cover_every_product():
+    from retail_basket.data import CATEGORIES, category_of
+
+    _, catalog = load_baskets()
+    assert {i.category for i in catalog.values()} <= set(CATEGORIES)
+    assert category_of("Axis M3046-V Network Camera") == "Cameras"
+    assert category_of("Honeywell HEN08104 NVR") == "Recorders" and category_of("Dahua 8-Channel NVR") == "Recorders"
+    assert category_of("Bosch F220-B6 Detector Base") == "Accessories"  # a base is an accessory, not a detector
+    assert category_of("DSC WS4916 Smoke Detector") == "Detectors"
+    assert category_of("GE Interlogix NX-8 Control Panel") == "Panels & kits"
