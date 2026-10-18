@@ -1,0 +1,66 @@
+{
+  "_comment": "Graded relevance (0-3) of recommendation item_ids per benchmark query, written by P4 from the P2 and P3 catalogs and the SEC risk categories. Judged from the question, not from what the system returns. Ids starting with 'TODO-' (none left) would be skipped, never scored.",
+  "Q35": {
+    "CISCO-C8200-POWER-SUPPLY": 3,
+    "CISCO-C8200-ROUTE-PROCESSOR": 1,
+    "CISCO-C8200-NETWORK-INTERFACE": 1
+  },
+  "Q36": {
+    "CISCO-C8300-SFP-OPTICS": 3,
+    "CISCO-C8300-NETWORK-INTERFACE": 2
+  },
+  "Q37": {
+    "AGILENT-SEAHORSE-PLATE-CARTRIDGE": 3,
+    "AGILENT-SEAHORSE-CONSUMABLES": 2
+  },
+  "Q02": {
+    "CISCO-ASR1000-ROUTE-PROCESSOR": 3,
+    "CISCO-ASR1000-POWER-SUPPLY": 2
+  },
+  "Q03": {
+    "CISCO-C8300-ROUTE-PROCESSOR": 3,
+    "CISCO-C8300-NETWORK-INTERFACE": 2,
+    "CISCO-C8300-MEMORY-STORAGE": 1
+  },
+  "Q04": {
+    "CISCO-C8000V-VIRTUAL-ROUTER": 3,
+    "CISCO-C8000V-LICENSE": 2
+  },
+  "Q05": {
+    "CISCO-ISR4000-NETWORK-INTERFACE": 3
+  },
+  "Q06": {
+    "AGILENT-SEAHORSE-ANALYZER": 3,
+    "AGILENT-SEAHORSE-PLATE-CARTRIDGE": 1,
+    "AGILENT-SEAHORSE-CONSUMABLES": 1
+  },
+  "Q07": {
+    "AGILENT-NANOZOOMER-SLIDE-SCANNER-IVD": 3,
+    "AGILENT-DIGITAL-PATHOLOGY-SCANNER": 2
+  },
+  "Q08": {
+    "AGILENT-ARTISAN-LINK-PRO": 3,
+    "AGILENT-ARTISAN-SPECIAL-STAINS-CONSUMABLES": 2
+  },
+  "Q20": {
+    "STRAT-PRECISION-AG": 3,
+    "STRAT-COLD-CHAIN": 3,
+    "STRAT-EARLY-WARNING": 3,
+    "STRAT-TRACEABILITY": 2,
+    "STRAT-CLIMATE-NETWORK": 2,
+    "STRAT-NUTRITION-DIAGNOSTICS": 1
+  },
+  "Q22": {
+    "SEC-CISCO-OPERATIONAL": 3,
+    "STRAT-ENERGY-REFRESH": 3,
+    "STRAT-SUPPLIER-DIVERSIFY": 2,
+    "STRAT-CLIMATE-NETWORK": 1
+  },
+  "Q24": {
+    "STRAT-PRECISION-AG": 3,
+    "STRAT-EARLY-WARNING": 3,
+    "SEC-CISCO-FINANCIAL": 3,
+    "SEC-ALPHABET-FINANCIAL": 3,
+    "STRAT-COLD-CHAIN": 2
+  }
+}

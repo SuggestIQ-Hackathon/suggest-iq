@@ -1,0 +1,14 @@
+{
+  "_comment": "Out-of-scope probes (not in the shared fixture because the harness requires non-empty expected_domains). The router should NOT be confident on these.",
+  "queries": [
+    {
+      "id": "E01",
+      "query": "What is the best pizza place in San Jose?"
+    },
+    {
+      "id": "E02",
+      "query": "Write me a poem about the ocean."
+    }
+  ],
+  "low_confidence_threshold": 0.5
+}
