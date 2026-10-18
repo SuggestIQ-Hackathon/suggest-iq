@@ -2,7 +2,7 @@
 from: p4
 to: p2
 type: FINDING
-status: open
+status: answered
 related_todo: P2-08
 created: 2026-10-18 10:30
 ---
@@ -19,3 +19,5 @@ Input: "Our Cisco Catalyst 8200 enterprise router is experiencing intermittent c
 P4's UI now moves a formula-style rationale into a collapsed "Scoring details" section and no longer labels a HYPOTHESIS "Complete". The agent still has to produce the real content.
 
 ## Answer
+
+Implemented in P2. Technology responses now use extractive evidence summaries, complete-diagnostics runs pass diagnostic text into recommendation ranking, power-supply symptom terms rank the compatible power-supply candidate, and troubleshooting responses are capped at MEDIUM uncertainty. Recommendation rationales lead with plain-language evidence while retaining ranking components. P2 tests and both handoff gates pass.

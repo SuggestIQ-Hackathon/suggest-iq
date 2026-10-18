@@ -51,6 +51,7 @@ _MODELS = (
     ("Seahorse", re.compile(r"\bseahorse\b", re.I)),
     ("NanoZoomer", re.compile(r"\bnanozoomer\b", re.I)),
     ("Artisan Link Pro", re.compile(r"\bartisan\s+link\s+pro\b", re.I)),
+    ("S540MD", re.compile(r"\bs540\s*md\b|\bs540md\b", re.I)),
 )
 
 
@@ -102,7 +103,7 @@ _SYMPTOM_PATTERNS = (
     ("inconsistent readings", ("inconsistent readings", "inconsistent result", "variable readings")),
     ("instrument error", ("instrument error", "analyzer error", "error code")),
     ("calibration drift", ("calibration drift", "needs calibration", "calibration issue")),
-    ("imaging issue", ("imaging issue", "scanner issue", "slide scan")),
+    ("imaging issue", ("imaging issue", "scanner issue", "slide scan issue", "slide scanning issue")),
 )
 
 

@@ -172,11 +172,20 @@ def recommend(
     recommendations: list[RecommendationItem] = []
     for score, item_id, item, components in scored[: max(0, int(top_k))]:
         compatible = ", ".join(str(value) for value in item.get("compatible_models", [])) or "not specified"
-        rationale = (
-            f"Score {score:.2f} = similarity {components['cosine']:.2f}, "
+        matched_symptoms = [
+            str(symptom)
+            for symptom in item.get("typical_failure_symptoms", [])
+            if _words(symptom) & _words(problem_text)
+        ]
+        if matched_symptoms:
+            rationale = "Selected because the supplied problem evidence matches: " + ", ".join(matched_symptoms) + "."
+        else:
+            rationale = "Selected as the highest-ranked compatible catalog candidate for the supplied problem description."
+        rationale += (
+            f" Ranking components: similarity {components['cosine']:.2f}, "
             f"symptom match {components['symptom_keyword_match']:.2f}, "
             f"cost preference {components['cost_component']:.2f}, "
-            f"lead-time preference {components['lead_time_component']:.2f}; "
+            f"lead-time preference {components['lead_time_component']:.2f}, "
             f"verification multiplier {components['verified_multiplier']:.2f}."
         )
         if not item.get("verified", False):

@@ -37,18 +37,23 @@ _LITERATURE_TERMS = (
     "clinical research", "research", "paper", "papers", "study", "studies",
     "clinical trial", "clinical trials", "trial", "trials", "nct", "evidence",
     "diabetes", "heart attack", "heart disease", "covid", "knee injury",
-    "knee injuries", "intervention", "treatment", "outcome", "patient",
+    "knee injuries", "dengue", "fever", "outbreak", "epidemiology", "disease",
+    "prediction", "predicting", "framework", "bilateral-branch", "bbn",
+    "intervention", "treatment", "outcome", "patient", "wearable", "fog",
 )
 _MEDICAL_TERMS = (
     "diabetes", "heart attack", "heart disease", "covid", "knee injury",
     "knee injuries", "symptom", "symptoms", "test result", "diagnosis",
-    "diagnostic", "treatment", "therapy", "patient", "medical condition",
+    "dengue", "fever", "outbreak", "epidemiology", "disease", "diagnostic",
+    "treatment", "therapy", "patient", "medical condition",
 )
 _MODEL_ALIASES = {
     "seahorse": "Seahorse",
     "nanozoomer": "NanoZoomer",
     "artisan link pro": "Artisan Link Pro",
     "digital pathology": "Digital Pathology",
+    "s540md": "S540MD",
+    "s540 md": "S540MD",
 }
 _TOPIC_ALIASES = {
     "diabetes": ("diabetes", "glycemic"),
@@ -56,6 +61,7 @@ _TOPIC_ALIASES = {
     "heart attack": ("heart", "cardiac", "hearattack"),
     "knee injuries": ("knee",),
     "knee injury": ("knee",),
+    "dengue": ("dengue", "outbreak", "fever"),
 }
 
 
@@ -127,11 +133,56 @@ def _topic_filtered_hits(query: str, hits: list[Hit]) -> list[Hit]:
     for hit in hits:
         metadata = hit.chunk.metadata
         searchable = " ".join(
-            [str(metadata.get("source_doc", "")), str(metadata.get("model", ""))]
+            [
+                str(metadata.get("source_doc", "")),
+                str(metadata.get("model", "")),
+                str(hit.chunk.text or ""),
+            ]
         ).lower()
         if any(alias in searchable for alias in aliases):
             filtered.append(hit)
     return filtered
+
+
+_RELEVANCE_STOPWORDS = {"the", "and", "for", "from", "with", "which", "what", "does", "are", "our", "this", "that", "into", "about", "tell", "me"}
+
+
+def _relevant_hits(query: str, hits: list[Hit]) -> list[Hit]:
+    """Reject nearby but wrong product/topic evidence before answering."""
+    query_tokens = set(re.findall(r"[a-z0-9]+", query.lower()))
+    content_tokens = query_tokens - _RELEVANCE_STOPWORDS
+    aliases = _topic_for_query(query)
+    lowered_query = query.lower()
+    topic_requirements: tuple[str, ...] = ()
+    if any(term in lowered_query for term in ("metabolic", "live cell", "cell analysis", "cellular respiration", "glycolysis")):
+        topic_requirements = ("metabolic", "seahorse", "cell analysis", "cellular respiration", "glycolysis")
+    elif any(term in lowered_query for term in ("whole-slide", "whole slide", "pathology", "scanner")):
+        topic_requirements = ("whole-slide", "whole slide", "pathology", "scanner", "nanozoomer", "s540md")
+    elif "special stain" in lowered_query:
+        topic_requirements = ("special stain", "artisan")
+    model_anchors = {
+        token for token in content_tokens
+        if any(char.isdigit() for char in token)
+        or token in {"seahorse", "nanozoomer", "artisan", "s540md", "bbn", "bilateral", "branch"}
+    }
+    relevant: list[Hit] = []
+    for hit in hits:
+        metadata = hit.chunk.metadata
+        searchable = " ".join(
+            [str(hit.chunk.text or ""), str(metadata.get("source_doc", "")), str(metadata.get("vendor", "")), str(metadata.get("model", ""))]
+        ).lower()
+        searchable_tokens = set(re.findall(r"[a-z0-9]+", searchable))
+        if model_anchors and not model_anchors.issubset(searchable_tokens):
+            continue
+        if aliases and not any(alias in searchable for alias in aliases):
+            continue
+        if topic_requirements and not any(term in searchable for term in topic_requirements):
+            continue
+        overlap = len(content_tokens & searchable_tokens)
+        required_overlap = 2 if len(content_tokens) <= 2 else 3
+        if overlap >= (required_overlap if model_anchors or aliases else 2):
+            relevant.append(hit)
+    return relevant
 
 
 def _is_troubleshooting(query: str, symptom_count: int) -> bool:
@@ -164,7 +215,21 @@ def _usable_citation_count(citations: list) -> int:
     return usable
 
 
-def _literature_summary(hits: list[Hit]) -> str:
+def _best_excerpt(text: str, query: str, minimum_terms: int = 8) -> str:
+    sentences = [sentence.strip() for sentence in re.split(r"(?<=[.!?])\s+", text) if sentence.strip()]
+    if not sentences:
+        return text
+    query_terms = _terms(query)
+    ranked = []
+    for index, sentence in enumerate(sentences):
+        words = _terms(sentence)
+        overlap = len(words & query_terms)
+        readable = len(words) >= minimum_terms
+        ranked.append((overlap, readable, len(words), -index, sentence))
+    return max(ranked)[-1]
+
+
+def _literature_summary(hits: list[Hit], query: str = "") -> str:
     """Create a short extractive summary from retrieved local paper/trial text.
 
     This deliberately uses source text only rather than general medical
@@ -181,8 +246,7 @@ def _literature_summary(hits: list[Hit]) -> str:
         text = re.sub(r"\s+", " ", str(hit.chunk.text or "")).strip()
         if not text:
             continue
-        sentences = re.split(r"(?<=[.!?])\s+", text)
-        excerpt = next((sentence.strip() for sentence in sentences if len(_terms(sentence)) >= 8), text)
+        excerpt = _best_excerpt(text, query)
         if len(excerpt) > 280:
             excerpt = excerpt[:280].rstrip(" ,;:") + "..."
         key = (identifier, excerpt)
@@ -192,6 +256,36 @@ def _literature_summary(hits: list[Hit]) -> str:
     if not excerpts:
         return "Local clinical evidence was retrieved, but it contained no readable text."
     return "Evidence summary from retrieved local sources: " + " ".join(excerpts)
+
+
+def _instrument_summary(model: str | None, hits: list[Hit], query: str = "") -> str:
+    """Return a concise extractive answer from readable product evidence."""
+    excerpts: list[str] = []
+    seen: set[str] = set()
+    summary_query = query
+    if any(term in query.lower() for term in ("metabolic", "live cell", "cell analysis", "glycolysis")):
+        summary_query += " seahorse cellular respiration glycolysis"
+    for hit in hits[:5]:
+        source = str(hit.chunk.metadata.get("source_doc", "local Agilent source"))
+        text = re.sub(r"\s+", " ", str(hit.chunk.text or "")).strip()
+        if not text:
+            continue
+        sentences = [sentence.strip() for sentence in re.split(r"(?<=[.!?])\s+", text) if sentence.strip()]
+        preferred = next(
+            (sentence for sentence in sentences if "seahorse" in sentence.lower() and len(_terms(sentence)) >= 6),
+            None,
+        ) if "seahorse" in summary_query.lower() else None
+        excerpt = preferred or _best_excerpt(text, summary_query, minimum_terms=6)
+        if len(excerpt) > 280:
+            excerpt = excerpt[:280].rstrip(" ,;:") + "..."
+        key = f"{source}: {excerpt}"
+        if key not in seen:
+            seen.add(key)
+            excerpts.append(f"{source} reports: {excerpt}")
+    label = f" for {model}" if model else ""
+    if not excerpts:
+        return f"Local Agilent evidence for the requested instrument{label} was retrieved, but it contained no readable product description."
+    return f"Evidence summary{label}: " + " ".join(excerpts)
 
 
 def _diagnostic_recommendations(missing: list[str]) -> list[RecommendationItem]:
@@ -291,15 +385,15 @@ class ClinicalAgent(BaseDomainAgent):
         model = _model_from_query(query_text, parsed.product_model, None)
         try:
             if _is_instrument_question(query_text, model) and not _is_literature_question(query_text):
-                return self.kb.search(query_text, k=k, source_type="product_page")
+                hits = self.kb.search(query_text, k=max(k, 20), source_type="product_page")
+                return _relevant_hits(query_text, hits)[:k]
             if _is_literature_question(query_text):
-                hits = self.kb.search(query_text, k=k, source_type="paper")
-                if len(hits) < k:
-                    trial_hits = self.kb.search(query_text, k=k, source_type="trial")
-                    hits.extend(trial_hits)
-                    hits.sort(key=lambda hit: (-float(hit.score), hit.chunk.id))
-                return _topic_filtered_hits(query_text, hits)[:k]
-            return self.kb.search(query_text, k=k)
+                hits = self.kb.search(query_text, k=max(k, 20), source_type="paper")
+                trial_hits = self.kb.search(query_text, k=max(k, 20), source_type="trial")
+                hits.extend(trial_hits)
+                hits.sort(key=lambda hit: (-float(hit.score), hit.chunk.id))
+                return _relevant_hits(query_text, _topic_filtered_hits(query_text, hits))[:k]
+            return _relevant_hits(query_text, self.kb.search(query_text, k=max(k, 20)))[:k]
         except Exception:
             return []
 
@@ -337,7 +431,7 @@ class ClinicalAgent(BaseDomainAgent):
         try:
             if instrument_mode:
                 troubleshooting = _is_troubleshooting(query_text, len(parsed.symptoms))
-                hits = self.kb.search(query_text, k=5, source_type="product_page")
+                hits = self.retrieve(query_text, k=5)
                 if troubleshooting and not diagnostics_gate_passes(self.domain, parsed):
                     missing = missing_diagnostics(self.domain, parsed)
                     # Diagnostic actions are still recommendations and therefore
@@ -378,7 +472,7 @@ class ClinicalAgent(BaseDomainAgent):
                     domain=self.domain,
                     status="HYPOTHESIS" if troubleshooting else "ANALYSIS_COMPLETE",
                     findings_summary=(
-                        "Local Agilent evidence was retrieved for instrument matching."
+                        _instrument_summary(model, hits, query_text)
                         + (" Troubleshooting causes remain hypotheses." if troubleshooting else "")
                     ),
                     missing_diagnostics_needed=[],
@@ -401,7 +495,7 @@ class ClinicalAgent(BaseDomainAgent):
                     domain=self.domain,
                     status="ANALYSIS_COMPLETE",
                     findings_summary=(
-                        _literature_summary(hits)
+                        _literature_summary(hits, query_text)
                         + _disclaimer(query_text)
                     ),
                     missing_diagnostics_needed=[],

@@ -2,7 +2,7 @@
 from: p4
 to: p2
 type: FINDING
-status: open
+status: answered
 related_todo: P2-03
 created: 2026-10-18 08:55
 ---
@@ -22,3 +22,5 @@ Also: Q35 (complete diagnostics, failed power supply) now returns `HYPOTHESIS` w
 None needed; the benchmark keeps reporting these. Full list: `p4_eval_ui/presentation/eval_findings.md`. After a fix run `REAL_DOMAINS=all make eval`.
 
 ## Answer
+
+Implemented in P2. Cisco filename-to-model mappings now cover Catalyst 8300, ISR 4000, and ASR 1000, with an unfiltered fallback for stale indexes. Selection questions no longer enter the troubleshooting gate; fault-language detection was tightened and missing router model is requested. Clinical product metadata is cleaned and model-aware, and clinical literature retrieval now merges paper and trial hits. `make test-p2`, `STRICT=1 make test-p2`, and `make test-integration MEMBER=p2` pass.
