@@ -225,38 +225,34 @@ def split_rationale(why: str):
 
 
 def render_answer(manager, report) -> None:
+    """Reading order: the answer first (summary, recommendations, next steps, KPIs), supporting detail after (how it was routed)."""
     view = explain(report)
     info_req = any(r.status == "INFORMATION_REQUEST" for r in report.domain_findings.values())
-    st.markdown(theme.path_ribbon(report.audit_trace), unsafe_allow_html=True)
+    statuses = [r.status for r in report.domain_findings.values()]
+    n_cites = sum(len(r.citations) for r in report.domain_findings.values())
+    label, sub, color = answer_status(statuses)
+    conf = view.overall_confidence.replace(" (provisional)", "")
+
+    # 1. one-line trust strip (status, confidence, evidence, who answered)
+    agents = " ".join(theme.domain_pill(d.value) for d in report.detected_domains)
+    st.markdown(f'<div class="strip">{theme.pill(label + ": " + sub, color)}{theme.pill("Confidence " + conf, T.BUCKET_COLOR.get(conf, T.MUTED))}'
+                f'{theme.pill(str(n_cites) + " citations", T.MUTED)}<span class="strip-agents">{agents}</span></div>', unsafe_allow_html=True)
+
+    # 2. what is needed to firm up the answer (only when something is missing)
     if info_req:
         render_needs_info(manager, report, view)
 
+    # 3. the answer
     st.subheader("Executive summary")
     st.markdown(f'<div class="summary">{esc(trim_summary(report.executive_summary, info_req))}</div>', unsafe_allow_html=True)
-    n_cites = sum(len(r.citations) for r in report.domain_findings.values())
-    statuses = [r.status for r in report.domain_findings.values()]
-    prov = view.overall_confidence.endswith("(provisional)")
-    cols = st.columns(4)
-    with cols[0]:
-        theme.tile("Agents consulted", str(len(report.detected_domains)), ", ".join(theme.DOMAIN_LABEL.get(d.value, d.value) for d in report.detected_domains))
-    with cols[1]:
-        label, sub, color = answer_status(statuses)
-        theme.tile("Answer status", label, sub, color)
-    with cols[2]:
-        theme.tile("Overall confidence", view.overall_confidence.replace(" (provisional)", ""), "provisional" if prov else "from recommendations",
-                   T.BUCKET_COLOR.get(view.overall_confidence.split(" ")[0], T.MUTED))
-    with cols[3]:
-        theme.tile("Evidence (citations)", str(n_cites), "verbatim snippets with source and page")
-
-    st.subheader("How Suggest IQ routed your question")
-    show_flow(report.audit_trace)
-
     if report.cross_domain_synthesis:
-        st.subheader("Cross-domain synthesis")
         st.markdown(f'<div class="card">{esc(report.cross_domain_synthesis)}</div>', unsafe_allow_html=True)
+
     st.subheader("Recommendations")
     if not view.recommendations:
-        st.caption("No recommendations yet.")
+        st.markdown('<div class="card"><b>No specific recommendation was produced for this question.</b>'
+                    '<div class="meta">Naming the exact product or model (for example Catalyst 8200) and attaching the requested logs '
+                    'lets Suggest IQ match compatible parts and actions.</div></div>', unsafe_allow_html=True)
     for r in view.recommendations:
         caveats = "".join(f'<div class="caveat">⚠ {esc(c)}</div>' for c in r.caveats)
         ev = f'<div class="meta">Evidence ({r.evidence_count}): {esc("; ".join(r.evidence_sources))}</div>' if r.evidence_sources else ""
@@ -268,15 +264,21 @@ def render_answer(manager, report) -> None:
         if split_rationale(r.why)[1]:
             with st.expander("Scoring details"):
                 st.caption(r.why)
+
     st.subheader("Next steps")
-    for i, s in enumerate(report.next_steps, 1):
-        st.markdown(f'<div class="step"><div class="n">{i}</div><div>{esc(s)}</div></div>', unsafe_allow_html=True)
+    for i, step in enumerate(report.next_steps, 1):
+        st.markdown(f'<div class="step"><div class="n">{i}</div><div>{esc(step)}</div></div>', unsafe_allow_html=True)
     st.subheader("How impact will be measured")
     st.markdown("".join(f'<span class="kpi">{esc(k)}</span>' for k in report.measuring_impact_kpis), unsafe_allow_html=True)
     if view.what_would_change_this_answer:
         with st.expander("What would change this answer"):
             for w in view.what_would_change_this_answer:
                 st.markdown(f"- {w}")
+
+    # 4. supporting detail: how Suggest IQ got here
+    st.subheader("How Suggest IQ routed your question")
+    st.markdown(theme.path_ribbon(report.audit_trace), unsafe_allow_html=True)
+    show_flow(report.audit_trace)
 
 
 def render_trace() -> None:
@@ -432,7 +434,7 @@ def main() -> None:
     demo = st.query_params.get("demo")  # ?demo=cisco or ?demo=cisco-diag preloads a run (handy for demos and screenshots)
     if demo and manager is not None and "report" not in st.session_state and "demo_done" not in st.session_state:
         st.session_state["demo_done"] = True
-        _ask(manager, BRIEF_EXAMPLE, DIAG_EXAMPLE if demo == "cisco-diag" else "")
+        _ask(manager, BRIEF_WITH_MODEL if demo == "cisco-diag" else BRIEF_EXAMPLE, DIAG_EXAMPLE if demo == "cisco-diag" else "")
     pending = st.session_state.pop("pending", None)
     if pending and manager is not None:
         _ask(manager, pending[0], pending[1])

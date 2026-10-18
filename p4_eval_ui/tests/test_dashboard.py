@@ -75,3 +75,11 @@ def test_evaluation_reachable_from_home(monkeypatch):
     at = at.run()
     assert not at.exception
     assert any(s.value == "Evaluation" for s in at.subheader)
+
+
+def test_answer_comes_before_how_it_was_routed(monkeypatch):
+    at = _app(monkeypatch)
+    _click(at, "Failing Cisco router")
+    at = at.run()
+    titles = [s.value for s in at.subheader]
+    assert titles.index("Executive summary") < titles.index("Recommendations") < titles.index("Next steps") < titles.index("How Suggest IQ routed your question")

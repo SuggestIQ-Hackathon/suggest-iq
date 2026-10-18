@@ -74,6 +74,8 @@ div[data-testid="stForm"] [data-testid="stFormSubmitButton"] button::after{conte
 .kpi{display:inline-block;margin:4px 8px 4px 0;padding:7px 14px;border-radius:999px;border:1px solid var(--sd-border);font-size:.88rem;background:var(--sd-surface);box-shadow:var(--sd-shadow-sm)}
 .cite{border-left:3px solid var(--sd-border);padding:2px 12px;margin:6px 0;font-size:.92rem}
 mark{background:color-mix(in srgb,var(--sd-warning) 22%,var(--sd-surface));color:inherit;border-radius:4px;padding:0 3px}
+.strip{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0 14px}
+.strip-agents{display:inline-flex;gap:6px;flex-wrap:wrap;margin-left:6px}
 .ribbon{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--sd-border);border-radius:999px;background:var(--sd-surface);box-shadow:var(--sd-shadow-sm);margin:10px 0 16px;width:fit-content;max-width:100%}
 .ribbon .node{border-radius:999px;padding:2px 11px;font-size:.84rem;font-weight:600;background:color-mix(in srgb,var(--sd-ink) 5%,transparent)}
 .ribbon .arrow{color:var(--sd-muted)}
