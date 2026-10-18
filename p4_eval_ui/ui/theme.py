@@ -41,12 +41,22 @@ div[data-testid="stForm"] [data-baseweb="textarea"],div[data-testid="stForm"] [d
 div[data-testid="stForm"] textarea{font-size:1.12rem;line-height:1.55;color:var(--sd-ink)}
 div[data-testid="stForm"] details{border:0!important;background:transparent!important}
 div[data-testid="stForm"] details summary{color:var(--sd-muted);font-size:.9rem;padding-left:0}
-div[data-testid="stForm"] [data-testid="stFormSubmitButton"]{display:flex;justify-content:flex-end}
+div[data-testid="stForm"] [data-testid="stElementContainer"]:has([data-testid="stFormSubmitButton"]){margin-left:auto;width:auto}
+div[data-testid="stForm"] [data-testid="stFormSubmitButton"],div[data-testid="stForm"] div:has(>button[kind="secondaryFormSubmit"]),div[data-testid="stForm"] div:has(>button[kind="primaryFormSubmit"]){display:flex;justify-content:flex-end;text-align:right}
 div[data-testid="stForm"] [data-testid="stFormSubmitButton"] button{background:var(--sd-brand-strong);color:var(--sd-on-brand);border:0;border-radius:999px;padding:.55rem 1.5rem;font-weight:650;transition:transform .12s,background .12s}
 div[data-testid="stForm"] [data-testid="stFormSubmitButton"] button:hover{background:var(--sd-brand);transform:translateY(-1px)}
 div[data-testid="stForm"] [data-testid="stFormSubmitButton"] button::after{content:" \\2192"}
 .chiprow div.stButton>button{border-radius:999px;border:1px solid var(--sd-border);background:color-mix(in srgb,var(--sd-surface) 75%,transparent);color:var(--sd-ink);font-size:.86rem;font-weight:500;padding:.4rem .9rem;box-shadow:var(--sd-shadow-sm);transition:transform .12s,border-color .12s,color .12s}
 .chiprow div.stButton>button:hover{border-color:var(--sd-brand);color:var(--sd-brand);transform:translateY(-1px)}
+.headline{font-size:2.7rem;font-weight:800;letter-spacing:-.035em;text-align:center;line-height:1.12;margin-top:8vh;color:var(--sd-ink)}
+.headline em{font-style:normal;color:var(--sd-brand);text-decoration:underline;text-decoration-thickness:.09em;text-underline-offset:.12em;text-decoration-color:color-mix(in srgb,var(--sd-brand) 35%,transparent)}
+.subline{text-align:center;color:var(--sd-muted);font-size:1.08rem;margin:.9rem auto 1.8rem;max-width:560px}
+.eyebrow{font-size:.74rem;text-transform:uppercase;letter-spacing:.07em;color:var(--sd-muted);margin:1.4rem 0 .4rem;text-align:center;font-weight:600}
+.trust{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 18px;margin-top:2.2rem;color:var(--sd-muted);font-size:.84rem}
+.trust span::before{content:"\\2713";color:var(--sd-success);font-weight:800;margin-right:6px}
+.navchip{display:flex;justify-content:flex-end}
+button:focus-visible,[role="tab"]:focus-visible,textarea:focus-visible{outline:2px solid var(--sd-brand)!important;outline-offset:2px}
+div.stButton>button[kind="secondary"] span[data-testid="stIconMaterial"],div.stButton>button[kind="primary"] span[data-testid="stIconMaterial"]{font-size:1.15rem}
 .foot{text-align:center;color:var(--sd-muted);font-size:.82rem;margin-top:2.4rem}
 
 /* results */
@@ -99,6 +109,55 @@ div[data-baseweb="textarea"],[data-testid="stTextAreaRootElement"]{background:va
 div[data-baseweb="textarea"] textarea{background:transparent!important}
 div[data-testid="stForm"] div[data-baseweb="textarea"],div[data-testid="stForm"] [data-testid="stTextAreaRootElement"],div[data-testid="stForm"] [data-testid="stTextAreaRootElement"] *{background:transparent!important;border:0!important;box-shadow:none!important}
 [data-testid="stDataFrame"]{border:1px solid var(--sd-border);border-radius:14px;overflow:hidden}
+
+/* retail store */
+.block-container:has(.retail-root){max-width:1560px}
+div[data-testid="stColumn"]:has(.cart-anchor){position:sticky;top:14px;align-self:flex-start}
+.pcard{border:1px solid var(--sd-border);border-radius:16px;background:var(--sd-surface);padding:12px 12px 10px;box-shadow:var(--sd-shadow-sm);margin:0 0 6px;position:relative;transition:box-shadow .15s,border-color .15s}
+.pcard:hover{box-shadow:var(--sd-shadow-lg);border-color:color-mix(in srgb,var(--sd-brand) 40%,var(--sd-border))}
+.pimg{height:104px;border-radius:12px;background:color-mix(in srgb,var(--sd-brand) 6%,var(--sd-surface));border:1px solid color-mix(in srgb,var(--sd-brand) 10%,var(--sd-border));display:flex;align-items:center;justify-content:center;color:var(--sd-brand)}
+.pimg svg{width:58px;height:58px}
+.pbrand{font-size:.7rem;text-transform:uppercase;letter-spacing:.07em;color:var(--sd-muted);margin-top:10px;font-weight:600}
+.pname{font-weight:700;font-size:.93rem;line-height:1.3;min-height:2.6em;margin-top:2px}
+.pmeta{color:var(--sd-muted);font-size:.78rem;margin-top:4px;overflow-wrap:anywhere}
+.pflag{position:absolute;top:18px;left:18px;background:var(--sd-success);color:var(--sd-on-brand);border-radius:999px;font-size:.7rem;font-weight:700;padding:2px 9px}
+.pop{position:absolute;top:18px;right:18px;background:var(--sd-surface);border:1px solid var(--sd-border);border-radius:999px;font-size:.68rem;font-weight:600;padding:1px 8px;color:var(--sd-muted)}
+.resultsbar{display:flex;justify-content:space-between;align-items:center;color:var(--sd-muted);font-size:.86rem;margin:2px 2px 8px}
+.qhero{border:1px solid var(--sd-border);border-radius:18px;background:var(--sd-surface);box-shadow:var(--sd-shadow-sm);padding:20px 24px;margin:6px 0 14px}
+.qhero h3{margin:0 0 6px!important;font-size:1.25rem!important}
+.qhero.warn{border-left:6px solid var(--sd-warning)}
+.qhero.good{border-left:6px solid var(--sd-success)}
+[class*="st-key-pg_"] button{padding-left:0!important;padding-right:0!important}
+.gap{height:14px}
+/* round cart button pinned inside each product card */
+.pcard{padding-bottom:58px}
+[class*="st-key-add_"]{margin-top:-60px;margin-left:auto;margin-right:12px;width:44px!important;position:relative;z-index:3}
+[class*="st-key-add_"] button{width:44px;height:44px;min-height:0;border-radius:50%!important;padding:0!important;box-shadow:var(--sd-shadow-sm)}
+[class*="st-key-add_"] button:hover{transform:scale(1.07)}
+[class*="st-key-add_"] [data-testid="stIconMaterial"]{font-size:1.35rem}
+/* in-cart state: green check, green outline; hover reveals that a click removes it */
+.pcard.incart{border:2px solid var(--sd-success);padding:11px 11px 9px;padding-bottom:57px}
+[class*="st-key-add_"] button[kind="secondary"]{background:var(--sd-success)!important;color:var(--sd-on-brand)!important;border:0!important}
+[class*="st-key-add_"] button[kind="secondary"]:hover{background:var(--sd-danger)!important}
+/* hovering the green check swaps the glyph to a trash can (the ligature text "delete" renders the icon) */
+[class*="st-key-add_"] button[kind="secondary"]:hover [data-testid="stIconMaterial"]{font-size:0!important}
+[class*="st-key-add_"] button[kind="secondary"]:hover [data-testid="stIconMaterial"]::after{content:"delete";font-size:1.35rem;line-height:1}
+/* top navigation bar: sticky, full-bleed, glassy; segmented switch in the middle */
+.st-key-topnav{position:sticky;top:0;z-index:100;padding:10px 0 10px;margin-bottom:14px;background:color-mix(in srgb,var(--sd-bg) 86%,transparent);
+  backdrop-filter:saturate(1.4) blur(12px);box-shadow:0 0 0 100vmax color-mix(in srgb,var(--sd-bg) 86%,transparent);clip-path:inset(0 -100vmax);border-bottom:1px solid var(--sd-border)}
+.st-key-navgroup{background:color-mix(in srgb,var(--sd-ink) 6%,transparent);padding:4px;border-radius:999px;width:fit-content;margin:0 auto;flex-wrap:nowrap}
+.st-key-navgroup button{border:0!important;background:transparent!important;box-shadow:none!important;color:var(--sd-muted)!important;border-radius:999px!important;padding:.38rem 1.05rem!important;font-weight:600}
+.st-key-navgroup button:hover{color:var(--sd-ink)!important;background:color-mix(in srgb,var(--sd-ink) 6%,transparent)!important;transform:none}
+.st-key-navgroup button[kind="primary"]{background:var(--sd-brand-strong)!important;color:var(--sd-on-brand)!important;box-shadow:var(--sd-shadow-sm)!important}
+.st-key-navright{flex-wrap:nowrap;gap:.5rem}
+.st-key-navright button{border-radius:999px;padding:.38rem 1rem}
+[data-testid="stMainBlockContainer"]{padding-top:0!important}
+.st-key-navright [data-testid="stElementContainer"]{display:flex;align-items:center;margin:0}
+.st-key-navright p,.st-key-navright .navchip{margin:0;line-height:1}
+.st-key-topnav [data-testid="stHorizontalBlock"]{align-items:center}
+.st-key-navright .navchip{transform:translateY(-50%)}
+.st-key-topnav .brand{transform:translateY(-8px)}
+.st-key-topnav{margin-top:-1rem}
 """
 CSS = f"<style>{CSS}</style>"
 
