@@ -35,7 +35,11 @@ def test_asking_shows_answer_flow_and_tabs(monkeypatch):
     assert [t.label for t in at.tabs] == ["Answer", "Evidence", "Trace"]
     assert any("More information needed" in m.value for m in at.markdown)  # no diagnostics -> checklist card
     assert any(b.label == "Add diagnostics and re-run" for b in at.button)
-    assert any("How Suggest IQ routed your question" in s.value for s in at.subheader)  # the flow section
+    # nothing could be answered yet (no logs): a focused view, with the routing tucked away instead of a big diagram
+    titles = [x.value for x in at.subheader]
+    assert "What we know so far" in titles
+    assert not {"Recommendations", "Next steps", "How impact will be measured", "How Suggest IQ routed your question"} & set(titles)
+    assert any("How your question was routed" in e.label for e in at.expander)
 
 
 def test_example_chip_asks_in_one_click(monkeypatch):
@@ -79,7 +83,7 @@ def test_evaluation_reachable_from_home(monkeypatch):
 
 def test_answer_comes_before_how_it_was_routed(monkeypatch):
     at = _app(monkeypatch)
-    _click(at, "Failing Cisco router")
+    _click(at, "With logs attached")  # logs supplied, so agents can answer and the full layout is shown
     at = at.run()
     titles = [s.value for s in at.subheader]
     assert titles.index("Executive summary") < titles.index("Recommendations") < titles.index("Next steps") < titles.index("How Suggest IQ routed your question")
@@ -98,3 +102,41 @@ def test_navbar_is_on_every_screen_with_the_app_switch(monkeypatch):
     _click(at, "Consulting")
     at = at.run()
     assert len(at.tabs) == 3  # back on the consulting result the user left, not reset
+
+
+def test_full_layout_returns_once_diagnostics_are_supplied(monkeypatch):
+    at = _app(monkeypatch)
+    _click(at, "With logs attached")
+    at = at.run()
+    titles = [x.value for x in at.subheader]
+    assert "Executive summary" in titles and "Recommendations" in titles and "How Suggest IQ routed your question" in titles
+
+
+def _unrouted_report():
+    from core.schemas import ConsultingReport
+
+    kpi = "Overall Enterprise Service Level Agreement (SLA) fulfillment: > 99.5%"
+    return ConsultingReport(query="sjsu", detected_domains=[], executive_summary="A prioritized action plan is detailed below.", domain_findings={},
+                            consolidated_recommendations=[], next_steps=["Conduct comprehensive operational review."], measuring_impact_kpis=[kpi, kpi, kpi],
+                            audit_trace={"routing": {"domains": [], "confidence": 0.9}, "agents": {}, "mode": "live", "total_ms": 5.0, "fallbacks_used": []})
+
+
+def test_question_matched_to_no_specialist_gets_a_helpful_view_not_an_empty_report(monkeypatch):
+    monkeypatch.setenv("REAL_DOMAINS", "none")
+    at = st_testing.AppTest.from_file(APP, default_timeout=60)
+    at.session_state["report"] = _unrouted_report()
+    at.session_state["view"] = "result"
+    at = at.run()
+    assert not at.exception
+    text = " ".join(m.value for m in at.markdown)
+    assert "No specialist matched this question" in text and "We couldn\'t tell what you want to decide" in text
+    titles = [s.value for s in at.subheader]
+    assert not {"Executive summary", "Recommendations", "Next steps", "How impact will be measured", "How Suggest IQ routed your question"} & set(titles)
+    assert "0 of 0" not in text
+    assert at.text_area(key="rephrase_text").value == "sjsu" and any(b.key == "rephrase_go" for b in at.button)
+    assert sum(1 for b in at.button if b.key.startswith("un_")) == 3  # example chips offered
+    at.text_area(key="rephrase_text").set_value("Which parts should we order for our failing Cisco router?")
+    at = at.run()
+    next(b for b in at.button if b.key == "rephrase_go").click()
+    at = at.run()
+    assert not at.exception and at.session_state["report"].query.startswith("Which parts should we order")  # re-asked

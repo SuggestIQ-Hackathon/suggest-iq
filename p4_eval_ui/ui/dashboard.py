@@ -108,7 +108,7 @@ def _run(manager, query: str, diagnostics: str) -> None:
         st.error(f"The pipeline failed: {type(err).__name__}: {err}")
 
 
-def render_needs_info(manager, report, view) -> None:
+def render_needs_info(manager, report, view, blocked: bool = False) -> None:
     missing = []
     for resp in report.domain_findings.values():
         for m in resp.missing_diagnostics_needed:
@@ -116,7 +116,7 @@ def render_needs_info(manager, report, view) -> None:
                 missing.append(m)
     items = "".join(f"<li>{esc(m)}</li>" for m in missing)
     st.markdown(f'<div class="need"><h4>More information needed before parts can be recommended</h4>'
-               f'<div class="meta">The answer below is provisional. Please provide:</div><ul>{items}</ul></div>', unsafe_allow_html=True)
+               f'<div class="meta">{"Suggest IQ cannot recommend anything yet. Please provide:" if blocked else "The answer below is provisional. Please provide:"}</div><ul>{items}</ul></div>', unsafe_allow_html=True)
     st.text_area("Paste the requested output here", key="followup_diag", height=110, label_visibility="collapsed",
                  placeholder="Paste logs, error counters, versions...")
     c = st.columns([2.2, 1.6, 3])
@@ -207,9 +207,23 @@ def render_results(manager, report) -> None:
         render_trace()
 
 
+BOILERPLATE = "A prioritized action plan and measurable risk-mitigation framework are detailed below to ensure business continuity."
+
+
+def is_blocked(statuses) -> bool:
+    """True when no agent could answer (every domain asked for more information): there is nothing to rank, route or measure yet."""
+    return bool(statuses) and all(s == "INFORMATION_REQUEST" for s in statuses)
+
+
+def strip_boilerplate(summary: str) -> str:
+    return summary.replace(BOILERPLATE, "").strip()
+
+
 def answer_status(statuses):
     """Headline status for the answer tile, from the domain statuses. A hypothesis is never shown as 'Complete'."""
     n = len(statuses)
+    if n == 0:
+        return "No match", "no specialist could take this question", T.MUTED
     if any(s == "INFORMATION_REQUEST" for s in statuses):
         return "Provisional", f"{sum(s == 'INFORMATION_REQUEST' for s in statuses)} of {n} needs more information", T.WARNING
     if any(s == "CONFIRMED_FAULT" for s in statuses):
@@ -226,8 +240,41 @@ def split_rationale(why: str):
     return why, None
 
 
+def is_unrouted(report) -> bool:
+    """The router matched no specialist, so nothing ran and there is nothing honest to show except how to rephrase."""
+    return not report.detected_domains
+
+
+def _rephrase(query_key: str = "rephrase_text") -> None:
+    text = (st.session_state.get(query_key) or "").strip()
+    if text:
+        _queue(text, "")
+
+
+def render_unrouted(manager, report) -> None:
+    st.markdown(f'<div class="strip">{theme.pill("No specialist matched this question", T.MUTED)}</div>', unsafe_allow_html=True)
+    st.markdown('<div class="need"><h4>We couldn\'t tell what you want to decide</h4>'
+                '<div class="meta">Suggest IQ answers questions in four areas, and nothing in your message pointed to any of them.</div>'
+                '<ul><li><b>Network hardware and diagnostics:</b> Cisco and Google equipment, failures, replacement parts</li>'
+                '<li><b>Lab instruments and clinical evidence:</b> Agilent instruments, clinical trials and papers</li>'
+                '<li><b>Company filings and risk:</b> Cisco, Agilent and Alphabet annual reports</li>'
+                '<li><b>Food security and sustainability:</b> FAO State of Food Security reports</li></ul></div>', unsafe_allow_html=True)
+    st.text_area("Rephrase your question", value=report.query, key="rephrase_text", height=90,
+                 placeholder="Name a product, a company or a problem, e.g. which parts should we order for our failing Cisco router?")
+    st.button("Ask again", key="rephrase_go", type="primary", icon=":material/refresh:", on_click=_rephrase, disabled=manager is None)
+    st.markdown('<div class="eyebrow">Or try an example</div><div class="chiprow">', unsafe_allow_html=True)
+    examples = _examples()[:3]
+    cols = st.columns(3)
+    for col, (label, text, diag) in zip(cols, examples):
+        col.button(label, key=f"un_{label}", icon=CHIP_ICONS.get(label), on_click=_queue, args=(text, diag), width="stretch")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
 def render_answer(manager, report) -> None:
     """Reading order: the answer first (summary, recommendations, next steps, KPIs), supporting detail after (how it was routed)."""
+    if is_unrouted(report):
+        render_unrouted(manager, report)
+        return
     view = explain(report)
     info_req = any(r.status == "INFORMATION_REQUEST" for r in report.domain_findings.values())
     statuses = [r.status for r in report.domain_findings.values()]
@@ -241,20 +288,30 @@ def render_answer(manager, report) -> None:
         st.warning("The language model was unavailable for part of this answer, so built-in keyword rules were used instead "
                    f"({esc(str(fallbacks[0]))[:160]}). Results may be less accurate; try again later or check the API quota.")
 
-    # 1. one-line trust strip (status, confidence, evidence, who answered)
+    blocked = is_blocked(statuses)
+
+    # 1. one-line trust strip (status, confidence, evidence, who answered); confidence and citations mean nothing until something was answered
     agents = " ".join(theme.domain_pill(d.value) for d in report.detected_domains)
-    st.markdown(f'<div class="strip">{theme.pill(label + ": " + sub, color)}{theme.pill("Confidence " + conf, T.BUCKET_COLOR.get(conf, T.MUTED))}'
-                f'{theme.pill(str(n_cites) + " citations", T.MUTED)}<span class="strip-agents">{agents}</span></div>', unsafe_allow_html=True)
+    extra = "" if blocked else (theme.pill("Confidence " + conf, T.BUCKET_COLOR.get(conf, T.MUTED)) + theme.pill(str(n_cites) + " citations", T.MUTED))
+    st.markdown(f'<div class="strip">{theme.pill(label + ": " + sub, color)}{extra}<span class="strip-agents">{agents}</span></div>', unsafe_allow_html=True)
 
     # 2. what is needed to firm up the answer (only when something is missing)
     if info_req:
-        render_needs_info(manager, report, view)
+        render_needs_info(manager, report, view, blocked)
 
-    # 3. the answer
-    st.subheader("Executive summary")
-    st.markdown(f'<div class="summary">{esc(trim_summary(report.executive_summary, info_req))}</div>', unsafe_allow_html=True)
+    # 3. the answer (or, when nothing could be answered yet, what we know so far)
+    text = trim_summary(report.executive_summary, info_req)
+    st.subheader("What we know so far" if blocked else "Executive summary")
+    st.markdown(f'<div class="summary">{esc(strip_boilerplate(text) if blocked else text)}</div>', unsafe_allow_html=True)
     if report.cross_domain_synthesis:
         st.markdown(f'<div class="card">{esc(report.cross_domain_synthesis)}</div>', unsafe_allow_html=True)
+
+    if blocked:
+        # Focused view: the checklist above is the next step. No recommendations, KPIs or routing diagram until there is an answer to show.
+        with st.expander("How your question was routed", icon=":material/account_tree:"):
+            st.markdown(theme.path_ribbon(report.audit_trace), unsafe_allow_html=True)
+            show_flow(report.audit_trace)
+        return
 
     st.subheader("Recommendations")
     if not view.recommendations:
@@ -277,13 +334,13 @@ def render_answer(manager, report) -> None:
     for i, step in enumerate(report.next_steps, 1):
         st.markdown(f'<div class="step"><div class="n">{i}</div><div>{esc(step)}</div></div>', unsafe_allow_html=True)
     st.subheader("How impact will be measured")
-    st.markdown("".join(f'<span class="kpi">{esc(k)}</span>' for k in report.measuring_impact_kpis), unsafe_allow_html=True)
+    st.markdown("".join(f'<span class="kpi">{esc(k)}</span>' for k in dict.fromkeys(report.measuring_impact_kpis)), unsafe_allow_html=True)  # de-duplicated
     if view.what_would_change_this_answer:
         with st.expander("What would change this answer"):
             for w in view.what_would_change_this_answer:
                 st.markdown(f"- {w}")
 
-    # 4. supporting detail: how Suggest IQ got here
+    # 4. supporting detail: how Suggest IQ got here (shown when at least one agent produced an answer)
     st.subheader("How Suggest IQ routed your question")
     st.markdown(theme.path_ribbon(report.audit_trace), unsafe_allow_html=True)
     show_flow(report.audit_trace)
