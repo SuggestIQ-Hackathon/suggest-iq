@@ -129,6 +129,12 @@ div[data-testid="stColumn"]:has(.cart-anchor){position:sticky;top:14px;align-sel
 .qhero.good{border-left:6px solid var(--sd-success)}
 [class*="st-key-pg_"] button{padding-left:0!important;padding-right:0!important}
 .gap{height:14px}
+/* round cart button pinned inside each product card */
+.pcard{padding-bottom:58px}
+[class*="st-key-add_"]{margin-top:-60px;margin-left:auto;margin-right:12px;width:44px!important;position:relative;z-index:3}
+[class*="st-key-add_"] button{width:44px;height:44px;min-height:0;border-radius:50%!important;padding:0!important;box-shadow:var(--sd-shadow-sm)}
+[class*="st-key-add_"] button:hover{transform:scale(1.07)}
+[class*="st-key-add_"] [data-testid="stIconMaterial"]{font-size:1.35rem}
 """
 CSS = f"<style>{CSS}</style>"
 
