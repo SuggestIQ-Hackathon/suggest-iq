@@ -54,3 +54,37 @@ def test_real_agents_answer_the_two_primary_hackathon_questions():
     assert len(csr_response.recommendations) == 3
     assert csr_response.citations
     assert all(citation.source_doc.startswith("SOFI-") for citation in csr_response.citations)
+
+
+def test_real_sec_agent_searches_supported_filing_topic_without_company_name():
+    response = SECAgent().run("What is Delaware law?")
+    assert response.status == "ANALYSIS_COMPLETE"
+    assert response.uncertainty_level == "LOW"
+    assert response.citations
+    assert all(citation.source_doc.startswith("Alphabet_10-K_") for citation in response.citations)
+    assert "15%" in response.findings_summary
+
+
+def test_real_sec_agent_answers_generic_cybersecurity_filing_question():
+    response = SECAgent().run("What do the filings say about cybersecurity?")
+    assert response.status == "ANALYSIS_COMPLETE"
+    assert response.uncertainty_level == "LOW"
+    assert response.citations
+    assert "cybersecurity" in response.findings_summary.lower()
+
+
+def test_real_csr_agent_rejects_unrelated_question():
+    response = CSRAgent().run("What is the capital of France?")
+    assert response.status == "ANALYSIS_COMPLETE"
+    assert response.uncertainty_level == "HIGH"
+    assert not response.citations
+
+
+def test_real_csr_agent_corrects_food_security_typo_to_substantive_evidence():
+    response = CSRAgent().run("Tell me about foood security")
+    assert response.uncertainty_level == "LOW"
+    assert response.citations
+    assert any(
+        concept in response.findings_summary.lower()
+        for concept in ("availability", "malnutrition", "food security")
+    )

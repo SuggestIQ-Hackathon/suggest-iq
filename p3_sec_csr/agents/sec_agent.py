@@ -8,6 +8,7 @@ from core.interfaces import BaseDomainAgent, Context
 from core.rag_base import Hit, hits_to_citations
 from core.schemas import Citation, DomainResponse, DomainType, RecommendationItem
 from p3_sec_csr.agents.evidence import source_marker, uncertainty_for
+from p3_sec_csr.agents.query_normalization import normalize_query
 from p3_sec_csr.agents.risk_extractor import (
     CATEGORY_QUERIES,
     RiskFinding,
@@ -55,6 +56,35 @@ SEC_ANALYSIS_TERMS = (
     "financial",
     "compare",
     "comparison",
+    "delaware law",
+    "anti-takeover",
+    "business combination",
+    "voting stock",
+    "delaware",
+    "takeover",
+    "acquisition",
+    "cybersecurity",
+)
+
+SEC_QUERY_VOCABULARY = (
+    "agilent",
+    "alphabet",
+    "cisco",
+    "google",
+    "delaware",
+    "cybersecurity",
+    "takeover",
+    "acquisition",
+    "regulatory",
+    "financial",
+    "operational",
+    "competitive",
+    "supply",
+    "revenue",
+    "margin",
+    "income",
+    "filing",
+    "annual",
 )
 
 
@@ -166,7 +196,49 @@ class SECAgent(BaseDomainAgent):
             uncertainty_level="HIGH",
         )
 
+    def _generic_filing_topic_response(self, query: str) -> DomainResponse:
+        """Answer a supported filing topic when the user did not name a company."""
+        retrieval_query = query
+        if "delaware law" in query.lower():
+            retrieval_query = (
+                f"{query} anti-takeover provisions business combination "
+                "voting stock acquisition"
+            )
+        hits = self.kb.search(retrieval_query, k=3)
+        if not hits:
+            return DomainResponse(
+                domain=self.domain,
+                status="ANALYSIS_COMPLETE",
+                findings_summary=(
+                    "The local SEC filing corpus did not retrieve evidence for this topic. "
+                    "Name a supported company or ask about a filing topic in the corpus."
+                ),
+                citations=self._coverage_citations(),
+                uncertainty_level="HIGH",
+            )
+        summaries = []
+        for hit in hits:
+            metadata = hit.chunk.metadata
+            company = metadata.get("company", "A supported company")
+            year = metadata.get("fiscal_year")
+            year_label = f" FY{year}" if year else ""
+            summaries.append(
+                f"{company}{year_label}: {_truncate(hit.chunk.text)} "
+                f"{source_marker(hit)}"
+            )
+        return DomainResponse(
+            domain=self.domain,
+            status="ANALYSIS_COMPLETE",
+            findings_summary=(
+                " ".join(summaries)
+                + " This is a disclosure from the cited filing, not general legal advice."
+            ),
+            citations=hits_to_citations(hits),
+            uncertainty_level=uncertainty_for(query, hits),
+        )
+
     def retrieve(self, query: str, k: int = 5) -> list[Hit]:
+        query = normalize_query(query, SEC_QUERY_VOCABULARY)
         companies = self._companies(query, None)
         company = companies[0] if len(companies) == 1 else None
         year = self._requested_year(query)
@@ -226,6 +298,7 @@ class SECAgent(BaseDomainAgent):
 
     def run(self, query: str, context: Context = None) -> DomainResponse:
         try:
+            query = normalize_query(query, SEC_QUERY_VOCABULARY)
             if not query.strip():
                 return DomainResponse(
                     domain=self.domain,
@@ -239,6 +312,16 @@ class SECAgent(BaseDomainAgent):
                 )
             companies = self._companies(query, context)
             if not companies:
+                named_filing_terms = (
+                    "annual report",
+                    "annual filing",
+                    "10-k",
+                    "latest filing",
+                )
+                if self._is_in_scope(query) and not any(
+                    term in query.lower() for term in named_filing_terms
+                ):
+                    return self._generic_filing_topic_response(query)
                 coverage = ", ".join(
                     sorted({entry["company"] for entry in self.kb.manifest})
                 )
