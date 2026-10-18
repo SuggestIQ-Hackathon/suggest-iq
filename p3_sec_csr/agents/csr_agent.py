@@ -51,6 +51,32 @@ CSR_SCOPE_TERMS = (
     "csr",
 )
 
+# The SOFI reports are not a source for general-world facts. These explicit
+# patterns prevent coincidental word matches (for example, a report discussion
+# of financial capital and a country name) from being presented as an answer.
+CSR_OUT_OF_SCOPE_PATTERNS = (
+    r"\bcapital of\b",
+    r"\bweather\b",
+    r"\bsports?\b",
+    r"\bpokemon\b",
+)
+
+CSR_TOPIC_STOPWORDS = {
+    "about",
+    "are",
+    "does",
+    "from",
+    "have",
+    "how",
+    "is",
+    "the",
+    "this",
+    "what",
+    "when",
+    "where",
+    "which",
+}
+
 
 def _expanded_query(query: str) -> str:
     lowered = query.lower()
@@ -166,6 +192,24 @@ class CSRAgent(BaseDomainAgent):
         lowered = query.lower()
         return any(term in lowered for term in CSR_SCOPE_TERMS)
 
+    def _has_grounded_topic(self, query: str) -> bool:
+        """Allow a copied SOFI heading when its meaningful words co-occur in evidence."""
+        lowered = query.lower()
+        if any(re.search(pattern, lowered) for pattern in CSR_OUT_OF_SCOPE_PATTERNS):
+            return False
+        terms = {
+            token
+            for token in re.findall(r"[a-z0-9]+", lowered)
+            if len(token) > 3 and token not in CSR_TOPIC_STOPWORDS
+        }
+        if not terms:
+            return False
+        for hit in self.kb.search(query, k=5):
+            evidence_terms = set(re.findall(r"[a-z0-9]+", hit.chunk.text.lower()))
+            if terms.issubset(evidence_terms):
+                return True
+        return False
+
     def _out_of_scope_response(self) -> DomainResponse:
         return DomainResponse(
             domain=self.domain,
@@ -205,7 +249,7 @@ class CSRAgent(BaseDomainAgent):
                     citations=hits_to_citations(coverage_hits),
                     uncertainty_level="HIGH",
                 )
-            if not self._is_in_scope(query):
+            if not self._is_in_scope(query) and not self._has_grounded_topic(query):
                 return self._out_of_scope_response()
             year = self._requested_year(query)
             if year is not None and year not in AVAILABLE_YEARS:

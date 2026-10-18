@@ -133,3 +133,19 @@ def test_real_csr_agent_corrects_food_security_typo_to_substantive_evidence():
         concept in response.findings_summary.lower()
         for concept in ("availability", "malnutrition", "food security")
     )
+
+
+def test_real_csr_agent_answers_supported_heading_without_scope_keywords():
+    response = CSRAgent().run("What Regional progress")
+    assert response.status == "ANALYSIS_COMPLETE"
+    assert response.uncertainty_level == "LOW"
+    assert response.citations
+    assert all(citation.source_doc == "SOFI-2023.pdf" for citation in response.citations)
+    assert "progress" in response.findings_summary.lower()
+
+
+def test_real_csr_agent_rejects_unrelated_pokemon_question():
+    response = CSRAgent().run("What is Pokemon?")
+    assert response.status == "ANALYSIS_COMPLETE"
+    assert response.uncertainty_level == "HIGH"
+    assert not response.citations
