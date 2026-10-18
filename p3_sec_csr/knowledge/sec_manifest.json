@@ -1,0 +1,47 @@
+[
+  {
+    "file": "UnitedStatesSecuritiesandExchangeCommission(SEC)/Agilent/b5098e8e-5716-4b35-8d8e-84dbdab516b1.pdf",
+    "logical_name": "Agilent_10-K_FY2025.pdf",
+    "company": "Agilent",
+    "form": "10-K",
+    "fiscal_year": 2025,
+    "period_end": "2025-10-31",
+    "pages": 217
+  },
+  {
+    "file": "UnitedStatesSecuritiesandExchangeCommission(SEC)/Alphabet/0ca59726-c36c-45fe-a114-e147f8cd7237.pdf",
+    "logical_name": "Alphabet_10-K_FY2024.pdf",
+    "company": "Alphabet",
+    "form": "10-K",
+    "fiscal_year": 2024,
+    "period_end": "2024-12-31",
+    "pages": 108
+  },
+  {
+    "file": "UnitedStatesSecuritiesandExchangeCommission(SEC)/Alphabet/8873e505-7403-4c46-b377-81d814482cbb.pdf",
+    "logical_name": "Alphabet_10-K_FY2025.pdf",
+    "company": "Alphabet",
+    "form": "10-K",
+    "fiscal_year": 2025,
+    "period_end": "2025-12-31",
+    "pages": 104
+  },
+  {
+    "file": "UnitedStatesSecuritiesandExchangeCommission(SEC)/Cisco/028fbac9-c5ba-409b-83ce-dfee9c17fdbc.pdf",
+    "logical_name": "Cisco_10-K_FY2026.pdf",
+    "company": "Cisco",
+    "form": "10-K",
+    "fiscal_year": 2026,
+    "period_end": "2026-07-25",
+    "pages": 285
+  },
+  {
+    "file": "UnitedStatesSecuritiesandExchangeCommission(SEC)/Cisco/6c821d1a-cf4e-4310-9801-df9399aa701b.pdf",
+    "logical_name": "Cisco_10-K_FY2025.pdf",
+    "company": "Cisco",
+    "form": "10-K",
+    "fiscal_year": 2025,
+    "period_end": "2025-07-26",
+    "pages": 123
+  }
+]
