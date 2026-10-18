@@ -42,6 +42,49 @@ def test_agilent_instrument_matching_returns_catalog_candidate_and_citation():
     assert response.recommendations
     assert response.recommendations[0].item_id.startswith("AGILENT-NANOZOOMER")
     assert response.recommendations[0].compatibility_notes
+    assert response.uncertainty_level == "MEDIUM"
+
+
+def test_agilent_instrument_matching_is_low_only_with_two_readable_citations():
+    first = FakeClinicalKB().hits[0]
+    second = Hit(
+        chunk=Chunk(
+            id="agilent#2",
+            text="NanoZoomer evidence also describes digital pathology slide scanning workflows.",
+            metadata={
+                "source_doc": "agilent-digital-pathology-scanners.html",
+                "vendor": "Agilent",
+                "model": "NanoZoomer",
+                "doc_type": "product_page",
+            },
+        ),
+        score=0.8,
+    )
+    agent = ClinicalAgent()
+    agent.kb = FakeClinicalKB([first, second])
+    response = agent.run("Which Agilent NanoZoomer instrument supports digital pathology imaging?")
+    assert response.uncertainty_level == "LOW"
+
+
+def test_agilent_markup_only_evidence_returns_high_uncertainty():
+    markup_hit = Hit(
+        chunk=Chunk(
+            id="markup#1",
+            text='<script nonce="x">tracking()</script>',
+            metadata={
+                "source_doc": "agilent-page.html",
+                "vendor": "Agilent",
+                "model": "NanoZoomer",
+                "doc_type": "product_page",
+            },
+        ),
+        score=0.9,
+    )
+    agent = ClinicalAgent()
+    agent.kb = FakeClinicalKB([markup_hit])
+    response = agent.run("Which Agilent NanoZoomer instrument supports digital pathology imaging?")
+    assert response.status == "INFORMATION_REQUEST"
+    assert response.uncertainty_level == "HIGH"
 
 
 def test_clinical_literature_retrieval_returns_citations_and_disclaimer():
@@ -58,6 +101,8 @@ def test_clinical_literature_retrieval_returns_citations_and_disclaimer():
     response = agent.run("What does the diabetes clinical research report about the intervention?")
     assert response.status == "ANALYSIS_COMPLETE"
     assert response.citations[0].source_doc == "diabetes-paper.pdf"
+    assert "diabetes-paper.pdf reports:" in response.findings_summary
+    assert "diabetes research study evaluates an intervention" in response.findings_summary
     assert "Informational only; not medical advice." in response.findings_summary
 
 

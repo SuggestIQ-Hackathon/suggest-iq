@@ -151,6 +151,49 @@ def _citations(hits: list[Hit]) -> list:
         return []
 
 
+def _usable_citation_count(citations: list) -> int:
+    """Count readable citation snippets suitable for supporting a claim."""
+    usable = 0
+    for citation in citations:
+        snippet = str(citation.snippet or "")
+        lowered = snippet.lower()
+        if any(marker in lowered for marker in ("<script", "</script", "nonce=", "javascript:", "display:none")):
+            continue
+        if len(re.findall(r"[A-Za-z]{3,}", snippet)) >= 8:
+            usable += 1
+    return usable
+
+
+def _literature_summary(hits: list[Hit]) -> str:
+    """Create a short extractive summary from retrieved local paper/trial text.
+
+    This deliberately uses source text only rather than general medical
+    knowledge or an online/LLM-generated claim. The same hit text is exposed
+    through ``hits_to_citations`` so each excerpt remains auditable.
+    """
+    excerpts: list[str] = []
+    seen: set[tuple[str, str]] = set()
+    for hit in hits[:5]:
+        metadata = hit.chunk.metadata
+        source = str(metadata.get("source_doc", "local clinical source"))
+        section = metadata.get("section")
+        identifier = f"{source} ({section})" if section else source
+        text = re.sub(r"\s+", " ", str(hit.chunk.text or "")).strip()
+        if not text:
+            continue
+        sentences = re.split(r"(?<=[.!?])\s+", text)
+        excerpt = next((sentence.strip() for sentence in sentences if len(_terms(sentence)) >= 8), text)
+        if len(excerpt) > 280:
+            excerpt = excerpt[:280].rstrip(" ,;:") + "..."
+        key = (identifier, excerpt)
+        if key not in seen:
+            seen.add(key)
+            excerpts.append(f"{identifier} reports: {excerpt}")
+    if not excerpts:
+        return "Local clinical evidence was retrieved, but it contained no readable text."
+    return "Evidence summary from retrieved local sources: " + " ".join(excerpts)
+
+
 def _diagnostic_recommendations(missing: list[str]) -> list[RecommendationItem]:
     return [
         RecommendationItem(
@@ -311,6 +354,15 @@ class ClinicalAgent(BaseDomainAgent):
                         ["Relevant local Agilent product evidence"],
                     )
                 recommendations = _instrument_recommendations(query_text, model, hits)
+                citations = _citations(hits)
+                usable_citations = _usable_citation_count(citations)
+                if usable_citations == 0:
+                    return self._information_request(
+                        query_text,
+                        "The retrieved Agilent pages did not contain sufficient readable evidence for a reliable instrument response.",
+                        ["Readable local Agilent product evidence"],
+                        hits,
+                    )
                 return DomainResponse(
                     domain=self.domain,
                     status="HYPOTHESIS" if troubleshooting else "ANALYSIS_COMPLETE",
@@ -320,8 +372,10 @@ class ClinicalAgent(BaseDomainAgent):
                     ),
                     missing_diagnostics_needed=[],
                     recommendations=recommendations,
-                    citations=_citations(hits),
-                    uncertainty_level="MEDIUM" if troubleshooting else "LOW",
+                    citations=citations,
+                    uncertainty_level=(
+                        "MEDIUM" if troubleshooting or usable_citations < 2 else "LOW"
+                    ),
                 )
 
             if _is_literature_question(query_text):
@@ -336,7 +390,7 @@ class ClinicalAgent(BaseDomainAgent):
                     domain=self.domain,
                     status="ANALYSIS_COMPLETE",
                     findings_summary=(
-                        "Local clinical papers and/or trial records were retrieved for review."
+                        _literature_summary(hits)
                         + _disclaimer(query_text)
                     ),
                     missing_diagnostics_needed=[],
