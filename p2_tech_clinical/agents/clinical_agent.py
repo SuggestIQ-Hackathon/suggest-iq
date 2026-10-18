@@ -340,12 +340,23 @@ class ClinicalAgent(BaseDomainAgent):
                 hits = self.kb.search(query_text, k=5, source_type="product_page")
                 if troubleshooting and not diagnostics_gate_passes(self.domain, parsed):
                     missing = missing_diagnostics(self.domain, parsed)
+                    # Diagnostic actions are still recommendations and therefore
+                    # must be grounded by at least one readable citation.  A
+                    # sparse/empty local index should produce an information
+                    # request without recommendations, not an invalid
+                    # recommendation-plus-no-citation response.
+                    citations = _citations(hits)
+                    recommendations = (
+                        _diagnostic_recommendations(missing)
+                        if _usable_citation_count(citations) > 0
+                        else []
+                    )
                     return self._information_request(
                         query_text,
                         "Possible instrument causes remain hypotheses and require diagnostic confirmation.",
                         missing,
                         hits,
-                        _diagnostic_recommendations(missing),
+                        recommendations,
                     )
                 if not hits:
                     return self._information_request(
