@@ -43,6 +43,9 @@ _SEC_PATTERNS = [
     r"\b(?:supply[- ]chain\s*risks?|supplier\s*stability|operational\s*risks?|cloud\s*risks?)\b",
     r"\b(?:risk\s*factors?|competitive\s*risks?|disclose[s]?|disclosures?)\b",
     r"\b(?:delaware\s*law|anti[- ]takeover|takeover|share\s*repurchase|buyback|dividend|governance)\b",
+    r"\b(?:expanded ai offerings?|ai overviews?|ai mode|enterprise ai solutions?)\b",
+    r"\b(?:delaware law|anti-takeover|business combination)\b",
+    r"\b(?:share repurchases?|board of directors)\b",
     r"\b(?:long-term\s*supplier)\b",
 ]
 
@@ -54,6 +57,11 @@ _CSR_PATTERNS = [
     r"\b(?:agrifood|agriculture|agricultural|healthy\s*diets?|dietary\s*affordability)\b",
     r"\b(?:rising\s*food\s*prices?|carbon\s*footprint|greenhouse\s*gas)\b",
     r"(?:sources?\s*of\s*financing|financing\s*to\s*end\s*hunger|financing\s*gap|financing\s*flows?|climate\s*finances?|development\s*finances?|blended\s*finance)",
+    r"\b(?:debt swaps?|debt servicing|debt obligations?)\b",
+    r"\b(?:sources? of financing|financing alignment|financing synergies)\b",
+    r"\b(?:food security and nutrition financing|financing architecture)\b",
+    r"\b(?:regional|subregional)\s+progress\b",
+    r"\b(?:global nutrition targets?|2030 nutrition targets?)\b",
 ]
 
 
