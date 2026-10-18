@@ -139,6 +139,9 @@ div[data-testid="stColumn"]:has(.cart-anchor){position:sticky;top:14px;align-sel
 .pcard.incart{border:2px solid var(--sd-success);padding:11px 11px 9px;padding-bottom:57px}
 [class*="st-key-add_"] button[kind="secondary"]{background:var(--sd-success)!important;color:var(--sd-on-brand)!important;border:0!important}
 [class*="st-key-add_"] button[kind="secondary"]:hover{background:var(--sd-danger)!important}
+/* hovering the green check swaps the glyph to a trash can (the ligature text "delete" renders the icon) */
+[class*="st-key-add_"] button[kind="secondary"]:hover [data-testid="stIconMaterial"]{font-size:0!important}
+[class*="st-key-add_"] button[kind="secondary"]:hover [data-testid="stIconMaterial"]::after{content:"delete";font-size:1.35rem;line-height:1}
 """
 CSS = f"<style>{CSS}</style>"
 

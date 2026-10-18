@@ -124,7 +124,7 @@ def render_browser(svc: RecommenderService) -> None:
             with col:
                 st.markdown(_product_card(item, item.sku in cart, svc.model.item_count.get(item.sku, 0)), unsafe_allow_html=True)
                 if item.sku in cart:
-                    st.button("", key=f"add_{item.sku}", icon=":material/check:", help="In your cart. Click to remove.", on_click=remove_item, args=(item.sku,))
+                    st.button("", key=f"add_{item.sku}", icon=":material/check:", help="Remove", on_click=remove_item, args=(item.sku,))
                 else:
                     st.button("", key=f"add_{item.sku}", icon=":material/add_shopping_cart:", help="Add to cart", on_click=add_item, args=(item.sku,), type="primary")
     render_pager(total_pages, page)
