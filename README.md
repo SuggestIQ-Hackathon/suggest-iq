@@ -1,5 +1,18 @@
 # Agentic AI Management Consulting Platform (CMPE 256 Hackathon)
 
+**Suggest IQ** was built by our team as part of the **CMPE 256 (Recommender Systems) hackathon** at San José State University.
+
+**Live link: https://suggest-iq.fly.dev/**
+
+## Team
+
+- Manali Vijay Mankad
+- Vedanti Vilas Kanade
+- Ayushi Vishwas Surange
+- Jagath Jijo
+
+## About
+
 A manager agent routes customer questions to Technology, Clinical, SEC and Corporate-Responsibility agents, grounds answers in source documents with citations, ranks recommendations, and produces an executive consulting report with next steps and KPIs.
 
 **Start here:** `COMMON.md` (rules, contracts, ownership, tests). Then your member folder's `TODO.md`.
